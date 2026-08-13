@@ -1,0 +1,6 @@
+# dsh-balance-monitor bundle patch: one row that is simultaneously the host
+# plugin (node half, package main -> lib/index.js) and the browser roster
+# entry (dsh.client declaration -> lib/client.js).
+- insert:
+    - id: balance-monitor
+      name: 'dsh-balance-monitor'
