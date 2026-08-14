@@ -1,49 +1,51 @@
+[English](README.en.md) | 简体中文
+
 # dsh-balance-monitor
 
-DeepSeek account balance, right in the dsh sidebar footer.
+DeepSeek 账户余额，直接显示在 dsh 侧边栏底部。
 
-A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that shows your DeepSeek API account balance, a thin remaining-ratio bar, and how much the current day has cost — pinned above Settings in the sidebar footer, styled with the stock design tokens.
+一个极简的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) 插件：在侧边栏底部（设置上方）显示你的 DeepSeek API 账户余额、一条细的余额剩余比例条，以及当天已花费的金额。样式完全使用官方设计令牌，克制内敛。
 
 <p align="center">
-  <img src="docs/preview/balance-wide.png" alt="dsh-balance-monitor in the sidebar footer" width="280">
-  <img src="docs/preview/balance-rail.png" alt="dsh-balance-monitor collapsed to the rail" width="56">
+  <img src="docs/preview/balance-wide.png" alt="侧边栏底部余额卡片" width="280">
+  <img src="docs/preview/balance-rail.png" alt="折叠为圆形图标" width="56">
 </p>
 
-## Features
+## 功能
 
-| What | How |
+| 功能 | 实现 |
 |---|---|
-| Live balance | Queries `GET https://api.deepseek.com/user/balance` through the host half, using the `DEEPSEEK_API_KEY` from `$DSH_HOME/.credentials.yaml` (env var wins) |
-| Today's spend | The first successful query of a calendar day becomes that day's baseline (persisted in `$DSH_HOME/storages/balance-monitor.json`); spend = `max(0, baseline − current)`. Refills clamp to 0 instead of going negative |
-| Ratio bar | Current balance ÷ day-start baseline, blue → amber → red as it drops |
-| Placement | Registered on the official `sidebar.footer.action` slot — above Settings, no patch hacks |
-| Collapsed rail | Shrinks to a 36px circle with a compact amount and a tooltip |
-| Resilience | 60s polling + re-poll on tab visibility; on upstream failure the last known numbers stay visible (dimmed as stale) instead of an error flash |
+| 实时余额 | 服务端调用 `GET https://api.deepseek.com/user/balance`，使用 `$DSH_HOME/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`（环境变量优先） |
+| 今日花费 | 当天首次成功查询的余额记为基线（持久化在 `$DSH_HOME/storages/balance-monitor.json`）；花费 = `max(0, 基线 − 当前)`。充值不会让数字变负 |
+| 比例条 | 当前余额 ÷ 当日基线，蓝 → 琥珀 → 红 三档渐降 |
+| 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack |
+| 折叠态 | 收起后变为 36px 圆形，显示紧凑金额 + tooltip |
+| 健壮性 | 60s 轮询 + 切回标签页时刷新；上游失败时保留上次数据（变淡标记 stale），不闪错误 |
 
-## Install
+## 安装
 
-Works from source directly — the browser bundle is a hand-written classic script with **no build step**, so a git install needs no prepare script:
+浏览器端 bundle 是手写的 classic script，**无构建步骤**，git 安装无需 prepare 脚本：
 
 ```sh
 dsh plugin --profile web add "github:<you>/dsh-balance-monitor#main"
 ```
 
-or from npm (once published):
+或从 npm（发布后）：
 
 ```sh
 dsh plugin --profile web add dsh-balance-monitor
 ```
 
-Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom of the expanded sidebar, above Settings.
+然后重启 Web UI（`dsh --profile web`）。卡片出现在展开的侧边栏底部、设置按钮上方。
 
-## How it works
+## 工作原理
 
-One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
+一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
-- **Host half** (`lib/index.js`) — registers one RPC channel `/balance` (loopback trust fence) on `ctx.connection`. Each call reads the API key, queries the balance API, folds the result into the day-start baseline, and answers `{ ok, value }`.
-- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. The card polls every 60s and re-polls when the tab becomes visible.
+- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册 `/balance` RPC 通道（loopback 信任围栏）。每次调用读取 API key、查询余额 API、折算当日基线，返回 `{ ok, value }`。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。卡片每 60s 轮询一次，标签页重新可见时立即刷新。
 
-State file (`$DSH_HOME/storages/balance-monitor.json`):
+状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
 
 ```json
 {
@@ -55,26 +57,26 @@ State file (`$DSH_HOME/storages/balance-monitor.json`):
 }
 ```
 
-## Security notes
+## 安全说明
 
-- The API key never leaves the host: the browser half only ever sees balance numbers over the RPC channel, never the key.
-- The channel is served under the `loopback` trust authority.
-- No telemetry, no network beyond the official balance endpoint.
+- API key 永不离开服务端：浏览器半只能通过 RPC 通道看到余额数字，接触不到 key。
+- 通道走 `loopback` 信任策略。
+- 无遥测，网络请求仅官方余额接口。
 
-## Layout
+## 目录结构
 
 ```
 dsh-balance-monitor/
-├── package.json        # dsh.bundle (patch) + dsh.client (browser roster)
-├── cordis.patch.yml    # inserts the one combined plugin row
+├── package.json        # dsh.bundle (patch) + dsh.client (浏览器注册表)
+├── cordis.patch.yml    # 插入这一个组合插件行
 └── lib/
-    ├── index.js        # host half: /balance RPC channel
-    └── client.js       # browser half: sidebar footer card (hand-written, no build)
+    ├── index.js        # 服务端半：/balance RPC 通道
+    └── client.js       # 浏览器半：侧边栏卡片（手写，无构建）
 ```
 
-## Development
+## 开发
 
-No toolchain required. Edit `lib/*.js` directly; the bundle format mirrors what the official `tsdown` preset emits (`window.__ModuleLoader__.load({ id, factory })`).
+无需工具链。直接改 `lib/*.js`；bundle 格式与官方 `tsdown` 预设产物一致（`window.__ModuleLoader__.load({ id, factory })`）。
 
 ## License
 
