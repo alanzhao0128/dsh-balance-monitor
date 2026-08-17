@@ -20,6 +20,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Live balance | Queries `GET https://api.deepseek.com/user/balance` through the host half, using the `DEEPSEEK_API_KEY` from `$DSH_HOME/.credentials.yaml` (env var wins) |
 | Today / 7d / 30d spend (official) | With `DEEPSEEK_PLATFORM_TOKEN` set, the host queries the official usage API `platform.deepseek.com/api/v0/usage/cost` (the same data the platform console shows) and sums per-day windows: 7d = today minus 6 days, 30d = today minus 29 days (both inclusive). Accurate no matter where else the API key is used |
 | Balance-delta fallback | Without the platform token (or when the official API fails), today falls back to a balance-drop ledger (only accumulating drops; refills never inflate or wash out spend); 7d/30d show `—` |
+| Channel awareness | The card follows the current session's model provider: the DeepSeek official channel shows balance/spend; other channels (e.g. OpenCode Go, DashScope) show a "channel not supported" placeholder; no session renders nothing |
 | Placement | Registered on the official `sidebar.footer.action` slot — above Settings, no patch hacks |
 | Collapsed rail | Shrinks to a 36px circle with a compact balance and a tooltip |
 | Resilience | 60s polling + re-poll on tab visibility; on upstream failure the last known numbers stay visible (dimmed as stale) instead of an error flash |
@@ -56,7 +57,7 @@ Both credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
 - **Host half** (`lib/index.js`) — registers one RPC channel `/balance` (loopback trust fence) on `ctx.connection`. Each call reads the API key and queries the balance API; with a platform token it fetches the current month (plus the previous month when a window crosses the boundary) from the official usage API and aggregates today/7d/30d; without it, a balance-drop ledger backs today's spend. Answers `{ ok, value }`.
-- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. The card polls every 60s and re-polls when the tab becomes visible.
+- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 5s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
 

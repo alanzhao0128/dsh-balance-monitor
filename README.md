@@ -20,6 +20,7 @@ DeepSeek 余额与花费窗口，直接显示在 dsh 侧边栏底部。
 | 实时余额 | 服务端调用 `GET https://api.deepseek.com/user/balance`，使用 `$DSH_HOME/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`（环境变量优先） |
 | 今日/7日/30日花费（官方） | 配置 `DEEPSEEK_PLATFORM_TOKEN` 后，服务端调用官方用量接口 `platform.deepseek.com/api/v0/usage/cost`（与平台用量页同一份数据），按日期窗口累加。7日 = 今天往前 6 天，30日 = 今天往前 29 天（均含今天）。不受「在其他环境使用 API」影响 |
 | 余额差值回退 | 无平台 token 或官方接口失败时，今日花费回退为余额差值账本（只累计余额下降，充值不冲账）；7日/30日显示 `—` |
+| 渠道感知 | 卡片跟随当前会话的模型渠道（provider）自动显隐：DeepSeek 官方渠道显示余额/花费；其他渠道（如 OpenCode Go、百炼）显示「暂不支持此渠道」占位；无会话时不显示 |
 | 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack |
 | 折叠态 | 收起后变为 36px 圆形，显示紧凑余额 + tooltip |
 | 健壮性 | 60s 轮询 + 切回标签页时刷新；上游失败时保留上次数据（变淡标记 stale），不闪错误 |
@@ -56,7 +57,7 @@ dsh plugin --profile web add dsh-balance-monitor
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
 - **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册 `/balance` RPC 通道（loopback 信任围栏）。每次调用：读取 API key 查余额；有平台 token 时并行拉取当前月（+ 跨月窗口所需的上月）官方用量数据，按日期窗口累加出今日/7日/30日；官方不可用时以余额差值账本兜底。返回 `{ ok, value }`。
-- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。卡片每 60s 轮询一次，标签页重新可见时立即刷新。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 5s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。
 
 状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
 
