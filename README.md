@@ -57,7 +57,7 @@ dsh plugin --profile web add dsh-balance-monitor
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
 - **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册 `/balance` RPC 通道（loopback 信任围栏）。每次调用：读取 API key 查余额；有平台 token 时并行拉取当前月（+ 跨月窗口所需的上月）官方用量数据，按日期窗口累加出今日/7日/30日；官方不可用时以余额差值账本兜底。返回 `{ ok, value }`。
-- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 5s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 1s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。
 
 状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
 

@@ -57,7 +57,7 @@ Both credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
 - **Host half** (`lib/index.js`) — registers one RPC channel `/balance` (loopback trust fence) on `ctx.connection`. Each call reads the API key and queries the balance API; with a platform token it fetches the current month (plus the previous month when a window crosses the boundary) from the official usage API and aggregates today/7d/30d; without it, a balance-drop ledger backs today's spend. Answers `{ ok, value }`.
-- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 5s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
+- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
 
