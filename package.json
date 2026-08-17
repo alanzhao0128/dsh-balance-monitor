@@ -1,7 +1,7 @@
 {
   "name": "dsh-balance-monitor",
-  "version": "0.1.2",
-  "description": "DeepSeek account balance, remaining-ratio bar, and today's spend in the dsh sidebar footer.",
+  "version": "0.2.0",
+  "description": "Channel-aware DeepSeek balance and spend windows (today/7d/30d) in the dsh sidebar footer.",
   "keywords": [
     "dsh",
     "dsh-plugin",
