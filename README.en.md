@@ -11,8 +11,6 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
   <img src="docs/preview/balance-rail.png" alt="dsh-balance-monitor collapsed to the rail" width="56">
 </p>
 
-> The previews show the early layout; the current card is a "Balance" line plus a three-cell today / 7d / 30d spend-window row (the ratio bar is gone).
-
 ## Features
 
 | What | How |
