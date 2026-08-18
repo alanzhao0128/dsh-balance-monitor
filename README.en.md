@@ -4,7 +4,7 @@ English | [简体中文](README.md)
 
 DeepSeek balance and spend windows, right in the dsh sidebar footer.
 
-A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that shows your DeepSeek API account balance plus **today / 7-day / 30-day** spend windows, pinned above Settings in the sidebar footer, styled with the stock design tokens. With a platform token all windows are **official** (same data as the platform.deepseek.com usage page); without one, today falls back to a balance-delta estimate.
+A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that shows the current session's channel balance/usage in the sidebar footer, styled with the stock design tokens. The **DeepSeek official channel** shows balance plus today / 7-day / 30-day spend windows (official usage data when a platform token is set); the **Volcano Ark channel** shows Agent Plan quota bars (5h / weekly / monthly).
 
 <p align="center">
   <img src="docs/preview/balance-wide.png" alt="dsh-balance-monitor in the sidebar footer" width="280">
@@ -18,7 +18,8 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Live balance | Queries `GET https://api.deepseek.com/user/balance` through the host half, using the `DEEPSEEK_API_KEY` from `$DSH_HOME/.credentials.yaml` (env var wins) |
 | Today / 7d / 30d spend (official) | With `DEEPSEEK_PLATFORM_TOKEN` set, the host queries the official usage API `platform.deepseek.com/api/v0/usage/cost` (the same data the platform console shows) and sums per-day windows: 7d = today minus 6 days, 30d = today minus 29 days (both inclusive). Accurate no matter where else the API key is used |
 | Balance-delta fallback | Without the platform token (or when the official API fails), today falls back to a balance-drop ledger (only accumulating drops; refills never inflate or wash out spend); 7d/30d show `—` |
-| Channel awareness | The card follows the current session's model provider: the DeepSeek official channel shows balance/spend; other channels (e.g. OpenCode Go, DashScope) show a "channel not supported" placeholder; no session renders nothing |
+| Channel awareness | The card follows the current session's model provider: the DeepSeek official channel shows balance/spend; the Volcano Ark channel shows Agent Plan bars; other channels show a "channel not supported" placeholder; no session renders nothing |
+| Volcano Ark Agent Plan | With AK/SK configured, calls the `GetAFPUsage` control-plane API (SigV4 signed) and shows 5h / weekly / monthly quota bars, colored by usage (green → amber → red) |
 | Placement | Registered on the official `sidebar.footer.action` slot — above Settings, no patch hacks |
 | Collapsed rail | Shrinks to a 36px circle with a compact balance and a tooltip |
 | Resilience | 60s polling + re-poll on tab visibility; on upstream failure the last known numbers stay visible (dimmed as stale) instead of an error flash |
@@ -50,12 +51,19 @@ Both credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web 
 
 > ⚠️ `DEEPSEEK_PLATFORM_TOKEN` is a web-session token and **expires** (the official API returns code 40002/40003 when stale). On expiry the plugin silently falls back to the balance-delta estimate; refresh the token from the console and update the credential. Balance lookup is unaffected.
 
+| Credential | Required | Purpose |
+|---|---|---|
+| `ARK_ACCESS_KEY_ID` | Volcano Ark channel | Volcengine access key for the control-plane API (Agent Plan quota) |
+| `ARK_SECRET_ACCESS_KEY` | Volcano Ark channel | Volcengine secret access key |
+
+> Get Ark AK/SK: sign in at [console.volcengine.com](https://console.volcengine.com) → Access Control → API Access Keys → create a key. Note: AK/SK are IAM account-level credentials that can operate all resources — keep them private.
+
 ## How it works
 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
-- **Host half** (`lib/index.js`) — registers one RPC channel `/balance` (loopback trust fence) on `ctx.connection`. Each call reads the API key and queries the balance API; with a platform token it fetches the current month (plus the previous month when a window crosses the boundary) from the official usage API and aggregates today/7d/30d; without it, a balance-drop ledger backs today's spend. Answers `{ ok, value }`.
-- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
+- **Host half** (`lib/index.js`) — registers two RPC channels (loopback trust fence) on `ctx.connection`: `/balance` (DeepSeek balance + official usage windows + fallback ledger) and `/ark-quota` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 5 minutes).
+- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
 
@@ -77,9 +85,9 @@ State file (`$DSH_HOME/storages/balance-monitor.json`):
 
 ## Security notes
 
-- The API key and platform token never leave the host: the browser half only ever sees balance/spend numbers over the RPC channel, never the credentials.
+- The API key, platform token, and Ark AK/SK never leave the host: the browser half only ever sees balance/spend/quota numbers over the RPC channel, never the credentials.
 - The channel is served under the `loopback` trust authority.
-- No telemetry, no network beyond the official balance and usage endpoints.
+- No telemetry, no network beyond the official balance, usage, and Ark quota endpoints.
 
 ## Layout
 
@@ -88,8 +96,9 @@ dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (browser roster)
 ├── cordis.patch.yml    # inserts the one combined plugin row
 └── lib/
-    ├── index.js        # host half: /balance RPC channel (balance + official windows + fallback ledger)
-    └── client.js       # browser half: sidebar footer card (hand-written, no build)
+    ├── index.js        # host half: /balance + /ark-quota RPC channels
+    ├── client.js       # browser half: sidebar footer card (hand-written, no build)
+    └── signature.js    # Volcengine OpenAPI SigV4 signing (AK/SK)
 ```
 
 ## Development

@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-17
+
+### Added
+
+- **Volcano Ark Agent Plan channel**: `huoshan` provider renders quota bars for
+  the 5h / weekly / monthly windows, colored by usage (green → amber → red).
+- New host RPC `/ark-quota`: signs the `GetAFPUsage` control-plane OpenAPI with
+  AK/SK (Volcengine SigV4 variant) and caches the response for 5 minutes.
+- New `lib/signature.js`: pure, unit-testable Volcengine SigV4 signing
+  (port of the algorithm from dsh-ark-quota, MIT).
+- Credentials `ARK_ACCESS_KEY_ID` / `ARK_SECRET_ACCESS_KEY` read from
+  `$DSH_HOME/.credentials.yaml` (env overrides).
+
+### Changed
+
+- `CHANNELS` registry entries are now objects `{ type }`: `balance` and
+  `ark-plan` card variants; the ChannelCard shell dispatches on `type`.
+- Docs: README (zh + en) cover the Ark channel, credentials, and layout.
+
 ## [0.2.0] — 2026-08-17
 
 ### Added
@@ -38,6 +57,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.3.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.1.2...0.2.0
 [0.1.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.1.0...0.1.2
 [0.1.0]: https://github.com/alanzhao0128/dsh-balance-monitor/releases/tag/0.1.0
