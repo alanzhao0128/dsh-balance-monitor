@@ -62,7 +62,7 @@ dsh plugin --profile web add dsh-balance-monitor
 
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
-- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册两个 RPC 通道（loopback 信任围栏）：`/balance`（DeepSeek 余额+官方用量窗口）和 `/ark-quota`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 60s，与余额刷新节奏一致）。
+- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册两个 RPC 通道（loopback 信任围栏）：`/balance`（DeepSeek 余额+官方用量窗口）和 `/ark-quota`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 40s——严格小于浏览器端 60s 轮询，保证每次轮询都触发上游刷新）。
 - **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 1s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。
 
 状态文件（`$DSH_HOME/storages/balance-monitor.json`）：

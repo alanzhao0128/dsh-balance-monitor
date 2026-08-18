@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-08-18
+
+### Changed
+
+- Ark card: progress bars widened (56px → 84px); reset countdown now
+  right-aligned within each row and zero-padded to `04h 52m` / `00h 05m`
+  (day prefix kept when > 0: `5d 09h 50m`).
+- Ark quota refresh timing fixed: host cache reduced from 60s to 40s so it is
+  strictly below the browser's 60s poll — a 60s cache + 60s poll could skip a
+  refresh at the cache boundary and leave data ~2 minutes stale.
+
 ## [0.3.1] — 2026-08-18
 
 ### Changed
@@ -67,6 +78,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.3.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.1.2...0.2.0

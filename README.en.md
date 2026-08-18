@@ -62,7 +62,7 @@ Both credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web 
 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
-- **Host half** (`lib/index.js`) — registers two RPC channels (loopback trust fence) on `ctx.connection`: `/balance` (DeepSeek balance + official usage windows + fallback ledger) and `/ark-quota` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 60s to match the balance cadence).
+- **Host half** (`lib/index.js`) — registers two RPC channels (loopback trust fence) on `ctx.connection`: `/balance` (DeepSeek balance + official usage windows + fallback ledger) and `/ark-quota` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch).
 - **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
