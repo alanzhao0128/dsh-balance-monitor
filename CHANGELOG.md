@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-08-18
+
+### Changed
+
+- Volcano Ark quota numbers now show **used %** on the wide card and the
+  collapsed rail, matching the progress-bar fill and color (previously the
+  label showed remaining % while the bar filled by used %).
+
 ## [0.3.3] — 2026-08-18
 
 ### Fixed
@@ -86,6 +94,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.3.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.3...0.3.4
 [0.3.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.0...0.3.1
