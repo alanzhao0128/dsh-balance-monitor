@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-08-18
+
+### Fixed
+
+- Collapsed rail on the Volcano Ark card now shows the **5h** window's
+  remaining percent (previously the most-used window, which could be weekly or
+  monthly). Falls back to the most-used window only if 5h is absent.
+
 ## [0.3.2] — 2026-08-18
 
 ### Changed
@@ -78,6 +86,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.3.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.2.0...0.3.0
