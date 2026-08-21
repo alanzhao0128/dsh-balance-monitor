@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-08-21
+
+### Fixed
+
+- Credentials no longer resolve after DSH upgraded to 0.1.1-rc.1, which
+  migrated `$DSH_HOME/.credentials.yaml` to an indented `refs:` structure
+  (`  KEY: value`). The host half's regexes anchored the key at line start
+  (`^KEY:`), so every credential read failed and both `/balance` and
+  `/ark-quota` returned "not found". Anchors relaxed to `^\s*KEY:` — both the
+  legacy flat format and the new indented format are parsed.
+
 ## [0.3.4] — 2026-08-18
 
 ### Changed
@@ -94,6 +105,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.3...0.3.4
 [0.3.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.1...0.3.2
