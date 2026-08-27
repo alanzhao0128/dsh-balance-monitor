@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-27
+
+### Added
+
+- **Command Code channel**: when the session's provider is `commandcode`, the
+  sidebar card shows 5h / weekly / monthly used % with reset countdowns and the
+  plan name (GOAT / Pro / Max).
+- New host RPC `/cmdcode-quota`: Bearer-auths `api.commandcode.ai/alpha/billing/credits`,
+  `/alpha/usage/summary`, and `/alpha/billing/subscriptions`, normalising the
+  three windows into the same shape as the Ark card; cached for 40s.
+  - Monthly is derived as `totalMonthlyCredits / (totalMonthlyCredits +
+    monthlyCredits)` because Command Code's API exposes the monthly quota as a
+    *remaining* balance, not a used/cap window.
+- Credential `COMMANDCODE_API_KEY` read from `.credentials.yaml` (indented-safe).
+
 ## [0.3.5] — 2026-08-21
 
 ### Fixed
@@ -106,8 +121,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   spend in the dsh sidebar footer.
 
 [0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
+[0.4.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.5...0.4.0
+[0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.3...0.3.4
-[0.3.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.2.0...0.3.0
