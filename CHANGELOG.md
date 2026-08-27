@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-08-27
+
+### Fixed
+
+- Command Code monthly window reset time showed `—`: `currentPeriodEnd` is an
+  ISO string, but the parser used `Number(isoString)` (NaN) instead of
+  `new Date(isoString).getTime()`. Fixed to parse ISO strings (numeric
+  epoch-ms still works).
+
 ## [0.4.0] — 2026-08-27
 
 ### Added
@@ -121,6 +130,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   spend in the dsh sidebar footer.
 
 [0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
+[0.4.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.5...0.4.0
 [0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.3...0.3.4
