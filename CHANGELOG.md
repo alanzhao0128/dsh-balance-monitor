@@ -6,6 +6,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-08-28
+
+### Added
+
+- **Channel display configuration** (`channels.enabled`): the settings panel
+  gained a 渠道 group with one checkbox per provider (DeepSeek official /
+  Volcano Ark / Command Code). Checked channels now render **fixed cards** in
+  the sidebar — all at once, stacked, independent of the current session —
+  instead of following the session's provider. An empty list falls back to
+  all channels so the widget can never silently disappear.
+
+### Changed
+
+- **Seconds instead of milliseconds** in the settings panel: `ui.pollMs`,
+  `network.cacheMs`, `network.timeoutMs`, `network.platformTimeoutMs` are
+  edited as seconds (e.g. 60, 40, 20, 15) and converted to ms on save — the
+  document still stores ms, so existing values stay valid. Removed
+  `ui.providerPollMs` (provider detection is gone with the fixed-card model).
+- The `DEEPSEEK_PLATFORM_TOKEN` box now carries a three-part explainer:
+  what it is (web-session token — the API key only queries balance, spend
+  needs this), how to get it (platform.deepseek.com → DevTools Console →
+  `JSON.parse(localStorage.getItem('userToken')).value`), and what it does
+  (real official usage instead of a balance-delta estimate).
+
 ## [0.5.0] — 2026-08-27
 
 ### Added
@@ -165,6 +189,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.5.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.5...0.4.0

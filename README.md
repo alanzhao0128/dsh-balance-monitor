@@ -18,7 +18,7 @@ DeepSeek 余额与花费窗口，直接显示在 dsh 侧边栏底部。
 | 实时余额 | 服务端调用 `GET https://api.deepseek.com/user/balance`，使用 `$DSH_HOME/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`（环境变量优先） |
 | 今日/7日/30日花费（官方） | 配置 `DEEPSEEK_PLATFORM_TOKEN` 后，服务端调用官方用量接口 `platform.deepseek.com/api/v0/usage/cost`（与平台用量页同一份数据），按日期窗口累加。7日 = 今天往前 6 天，30日 = 今天往前 29 天（均含今天）。不受「在其他环境使用 API」影响 |
 | 余额差值回退 | 无平台 token 或官方接口失败时，今日花费回退为余额差值账本（只累计余额下降，充值不冲账）；7日/30日显示 `—` |
-| 渠道感知 | 卡片跟随当前会话的模型渠道（provider）自动显隐：DeepSeek 官方渠道显示余额/花费；火山方舟渠道显示 Agent Plan 进度条；Command Code 渠道显示用量窗口；其他渠道显示「暂不支持此渠道」占位；无会话时不显示 |
+| 固定多卡片 | 侧边栏同时显示设置面板勾选的所有渠道卡片（默认 DeepSeek 官方 / 火山方舟 / Command Code 全部显示），不跟随会话切换；未勾选的渠道隐藏 |
 | 火山方舟 Agent Plan | 配置 AK/SK 后，调用 `GetAFPUsage` 控制面 API（SigV4 签名），显示 5小时/周/月 三档套餐额度进度条，颜色随用量变化（绿→黄→红） |
 | Command Code 用量 | 配置 `COMMANDCODE_API_KEY` 后，调用 `api.commandcode.ai/alpha/billing/credits` 等接口，显示 5h/周/月 三窗口已用百分比与重置倒计时 |
 | 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack |
@@ -49,17 +49,17 @@ dsh plugin --profile web add dsh-balance-monitor
 
 | 分组 | 字段 | 默认 | 说明 |
 |---|---|---|---|
-| 显示 | `ui.showCard` | `true` | 关闭后整个侧边栏卡片与渠道探测都停止 |
+| 显示 | `ui.showCard` | `true` | 关闭后所有渠道卡片都不显示 |
 | 显示 | `ui.warnThreshold` | `30` | 用量 ≥ 该百分比进度条变黄 |
 | 显示 | `ui.dangerThreshold` | `70` | 用量 ≥ 该百分比进度条变红 |
-| 刷新 | `ui.pollMs` | `60000` | 卡片刷新间隔（毫秒），默认与 DeepSeek 官方节奏一致 |
-| 刷新 | `ui.providerPollMs` | `1000` | 当前会话渠道探测间隔（毫秒） |
-| 网络 | `network.cacheMs` | `40000` | 服务端配额缓存（毫秒），建议保持低于卡片刷新间隔 |
-| 网络 | `network.timeoutMs` | `20000` | 火山方舟 / Command Code 上游超时（毫秒） |
-| 网络 | `network.platformTimeoutMs` | `15000` | DeepSeek 平台用量接口超时（毫秒） |
+| 渠道 | `channels.enabled` | 全部勾选 | 勾选的渠道在侧边栏**固定显示卡片**（同时显示，不跟随会话切换）；未勾选的隐藏。选项：DeepSeek 官方 / 火山方舟 / Command Code |
+| 刷新 | `ui.pollMs` | `60` 秒 | 卡片刷新间隔（面板以秒显示，内部存毫秒） |
+| 网络 | `network.cacheMs` | `40` 秒 | 服务端配额缓存，建议保持低于卡片刷新间隔 |
+| 网络 | `network.timeoutMs` | `20` 秒 | 火山方舟 / Command Code 上游超时 |
+| 网络 | `network.platformTimeoutMs` | `15` 秒 | DeepSeek 平台用量接口超时 |
 | 凭证 | `credentials.file` | `.credentials.yaml` | 凭证文档文件名（相对 `$DSH_HOME`） |
 
-凭证组的 **`DEEPSEEK_PLATFORM_TOKEN` 密码框**：直接粘贴网页会话 token，保存后通过官方凭证服务写入 `$DSH_HOME/.credentials.yaml`（`refs:` 段，带锁 + 原子写），并显示「已配置/未配置」状态——过期后无需再手动编辑文件。
+凭证组的 **`DEEPSEEK_PLATFORM_TOKEN` 密码框**：直接粘贴网页会话 token，保存后通过官方凭证服务写入 `$DSH_HOME/.credentials.yaml`（`refs:` 段，带锁 + 原子写），并显示「已配置/未配置」状态——过期后无需再手动编辑文件。框下方附三段说明：它是什么（网页登录态会话令牌，API Key 只能查余额、查花费必须用它）、怎么取（platform.deepseek.com → F12 → Console → `JSON.parse(localStorage.getItem('userToken')).value`）、用来干什么（写入凭证后卡片显示真实官方用量，而非余额差值估算）。
 
 ### 凭证
 
@@ -85,7 +85,7 @@ dsh plugin --profile web add dsh-balance-monitor
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
 - **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册三个 RPC 通道（loopback 信任围栏）：`/balance`（DeepSeek 余额+官方用量窗口）、`/ark-quota`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 40s——严格小于浏览器端 60s 轮询，保证每次轮询都触发上游刷新）、`/cmdcode-quota`（Command Code 用量，Bearer 调 `api.commandcode.ai/alpha/billing/credits` 等，缓存 40s）。缓存与超时时长来自设置面板（`network.*`）。凭证统一走官方 `ctx.credentials` 服务读取。
-- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 1s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。同时注册 `settings.section` 设置页（余额监控），读写 `dsh-balance-monitor` 命名空间。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。读取设置面板的 `channels.enabled`，为每个勾选的渠道渲染一张固定卡片（DeepSeek 官方每 60s 轮询余额，标签页重新可见时立即刷新；火山方舟 / Command Code 同样按 `ui.pollMs` 轮询），卡片纵向堆叠同时显示，不跟随会话切换。同时注册 `settings.section` 设置页（余额监控），读写 `dsh-balance-monitor` 命名空间。
 
 状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
 
