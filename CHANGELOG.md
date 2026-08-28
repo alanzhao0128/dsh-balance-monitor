@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-08-28
+
+### Fixed
+
+- **Channel-credential status showed everything as "not configured"** after
+  the 0.6.0 upgrade: the host plugin's `inject` array declared only
+  `connection`, so cordis did not guarantee the `credentials`/`settings`/`llm`
+  services were ready at `apply()` time — `ctx.get()` failed (silently
+  swallowed) and `/credential-status` fell back to the no-service path
+  (all `configured: false, managedByDsh: false`).
+  - Declared `credentials`, `settings`, `llm` in the host `inject` array.
+  - Services are now resolved lazily: `refreshServices()` runs at `apply()`
+    and on every RPC entry, and only replaces a cached reference when the
+    service resolves non-null (an early miss can't clobber a later success).
+  - `readCredential()` continues to fall back to env + direct file parsing
+    when the seam is absent, so balance/usage lookups were never affected.
+
 ## [0.6.0] — 2026-08-28
 
 ### Added
@@ -234,6 +251,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.6.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.0...0.5.1
