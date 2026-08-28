@@ -43,14 +43,34 @@ Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom 
 
 ## Configuration
 
-Both credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web UI Models page, or edit the file directly):
+### Settings panel (recommended)
+
+Open dsh settings (gear) → **Balance Monitor** to edit the card's behaviour; saving writes the `dsh-balance-monitor:` section of `~/.dsh/settings.yaml` and applies immediately (a few fields after restart):
+
+| Group | Field | Default | Purpose |
+|---|---|---|---|
+| Display | `ui.showCard` | `true` | Turning this off stops both the sidebar card and provider detection |
+| Display | `ui.warnThreshold` | `30` | Bar turns amber at this used % |
+| Display | `ui.dangerThreshold` | `70` | Bar turns red at this used % |
+| Refresh | `ui.pollMs` | `60000` | Card refresh interval (ms), matching DeepSeek official cadence |
+| Refresh | `ui.providerPollMs` | `1000` | Current-session channel detection interval (ms) |
+| Network | `network.cacheMs` | `40000` | Host quota cache (ms); keep below the card refresh interval |
+| Network | `network.timeoutMs` | `20000` | Volcano Ark / Command Code upstream timeout (ms) |
+| Network | `network.platformTimeoutMs` | `15000` | DeepSeek platform usage API timeout (ms) |
+| Credentials | `credentials.file` | `.credentials.yaml` | Credentials document filename (relative to `$DSH_HOME`) |
+
+The **`DEEPSEEK_PLATFORM_TOKEN` password field** in the credentials group writes the web-session token through the official credentials service into `$DSH_HOME/.credentials.yaml` (`refs:` section, locked + atomic write) and shows configured / not-configured state — no file editing when the token expires.
+
+### Credentials
+
+Credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web UI Models page, or edit the file directly; the plugin reads them through the official `ctx.credentials` service, env vars win):
 
 | Credential | Required | Purpose |
 |---|---|---|
 | `DEEPSEEK_API_KEY` | ✅ | Balance lookup `api.deepseek.com/user/balance` |
 | `DEEPSEEK_PLATFORM_TOKEN` | optional | Official usage (today/7d/30d). Get it: sign in at [platform.deepseek.com](https://platform.deepseek.com) → DevTools Console, run `JSON.parse(localStorage.getItem('userToken')).value`, store the output as the credential |
 
-> ⚠️ `DEEPSEEK_PLATFORM_TOKEN` is a web-session token and **expires** (the official API returns code 40002/40003 when stale). On expiry the plugin silently falls back to the balance-delta estimate; refresh the token from the console and update the credential. Balance lookup is unaffected.
+> ⚠️ `DEEPSEEK_PLATFORM_TOKEN` is a web-session token and **expires** (the official API returns code 40002/40003 when stale). On expiry the card shows a red hint and falls back to the balance-delta estimate; paste a fresh token in the settings panel credentials group to restore official usage. Balance lookup is unaffected.
 
 | Credential | Required | Purpose |
 |---|---|---|
@@ -64,8 +84,8 @@ Both credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web 
 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
-- **Host half** (`lib/index.js`) — registers three RPC channels (loopback trust fence) on `ctx.connection`: `/balance` (DeepSeek balance + official usage windows + fallback ledger), `/ark-quota` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch), and `/cmdcode-quota` (Command Code usage, Bearer `api.commandcode.ai/alpha/billing/credits` etc., cached for 40s).
-- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check.
+- **Host half** (`lib/index.js`) — registers three RPC channels (loopback trust fence) on `ctx.connection`: `/balance` (DeepSeek balance + official usage windows + fallback ledger), `/ark-quota` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch), and `/cmdcode-quota` (Command Code usage, Bearer `api.commandcode.ai/alpha/billing/credits` etc., cached for 40s). Cache and timeout durations come from the settings panel (`network.*`); credentials are read through the official `ctx.credentials` service.
+- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check. It also registers a `settings.section` page (Balance Monitor) reading/writing the `dsh-balance-monitor` namespace.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
 
@@ -98,9 +118,10 @@ dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (browser roster)
 ├── cordis.patch.yml    # inserts the one combined plugin row
 └── lib/
-    ├── index.js        # host half: /balance + /ark-quota RPC channels
-    ├── client.js       # browser half: sidebar footer card (hand-written, no build)
-    └── signature.js    # Volcengine OpenAPI SigV4 signing (AK/SK)
+    ├── index.js        # host half: /balance + /ark-quota RPC channels + settings wiring
+    ├── config.js       # settings schema + defaults (mirrored by the panel)
+    ├── signature.js    # Volcengine OpenAPI SigV4 signing (AK/SK)
+    └── client.js       # browser half: sidebar footer card + settings page (hand-written, no build)
 ```
 
 ## Development

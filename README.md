@@ -43,14 +43,34 @@ dsh plugin --profile web add dsh-balance-monitor
 
 ## 配置
 
-两个凭证都在 `$DSH_HOME/.credentials.yaml`（Web 界面 Models 页写入，或直接编辑文件）：
+### 设置面板（推荐）
+
+打开 dsh 设置（齿轮）→ **余额监控 / Balance Monitor**，可编辑卡片行为参数，保存后写入 `~/.dsh/settings.yaml` 的 `dsh-balance-monitor:` 段，**即时生效**（个别参数重启后生效）：
+
+| 分组 | 字段 | 默认 | 说明 |
+|---|---|---|---|
+| 显示 | `ui.showCard` | `true` | 关闭后整个侧边栏卡片与渠道探测都停止 |
+| 显示 | `ui.warnThreshold` | `30` | 用量 ≥ 该百分比进度条变黄 |
+| 显示 | `ui.dangerThreshold` | `70` | 用量 ≥ 该百分比进度条变红 |
+| 刷新 | `ui.pollMs` | `60000` | 卡片刷新间隔（毫秒），默认与 DeepSeek 官方节奏一致 |
+| 刷新 | `ui.providerPollMs` | `1000` | 当前会话渠道探测间隔（毫秒） |
+| 网络 | `network.cacheMs` | `40000` | 服务端配额缓存（毫秒），建议保持低于卡片刷新间隔 |
+| 网络 | `network.timeoutMs` | `20000` | 火山方舟 / Command Code 上游超时（毫秒） |
+| 网络 | `network.platformTimeoutMs` | `15000` | DeepSeek 平台用量接口超时（毫秒） |
+| 凭证 | `credentials.file` | `.credentials.yaml` | 凭证文档文件名（相对 `$DSH_HOME`） |
+
+凭证组的 **`DEEPSEEK_PLATFORM_TOKEN` 密码框**：直接粘贴网页会话 token，保存后通过官方凭证服务写入 `$DSH_HOME/.credentials.yaml`（`refs:` 段，带锁 + 原子写），并显示「已配置/未配置」状态——过期后无需再手动编辑文件。
+
+### 凭证
+
+凭证存于 `$DSH_HOME/.credentials.yaml`（Web 界面 Models 页写入，或直接编辑文件；插件通过官方 `ctx.credentials` 服务读取，环境变量优先）：
 
 | 凭证 | 必需 | 用途 |
 |---|---|---|
 | `DEEPSEEK_API_KEY` | ✅ | 查询余额 `api.deepseek.com/user/balance` |
 | `DEEPSEEK_PLATFORM_TOKEN` | 可选 | 查询官方用量（今日/7日/30日）。获取：登录 [platform.deepseek.com](https://platform.deepseek.com) → DevTools Console 执行 `JSON.parse(localStorage.getItem('userToken')).value`，把输出写入凭证 |
 
-> ⚠️ `DEEPSEEK_PLATFORM_TOKEN` 是网页会话 token，**会过期**（官方返回 code 40002/40003 即过期）。过期时插件自动回退余额差值估算，重新登录官网取新 token 更新即可；余额查询不受影响。
+> ⚠️ `DEEPSEEK_PLATFORM_TOKEN` 是网页会话 token，**会过期**（官方返回 code 40002/40003 即过期）。过期时卡片显示红色提示并回退余额差值估算；在设置面板凭证组粘贴新 token 即可恢复，余额查询不受影响。
 
 | 凭证 | 必需 | 用途 |
 |---|---|---|
@@ -64,8 +84,8 @@ dsh plugin --profile web add dsh-balance-monitor
 
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
-- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册三个 RPC 通道（loopback 信任围栏）：`/balance`（DeepSeek 余额+官方用量窗口）、`/ark-quota`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 40s——严格小于浏览器端 60s 轮询，保证每次轮询都触发上游刷新）、`/cmdcode-quota`（Command Code 用量，Bearer 调 `api.commandcode.ai/alpha/billing/credits` 等，缓存 40s）。
-- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 1s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。
+- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册三个 RPC 通道（loopback 信任围栏）：`/balance`（DeepSeek 余额+官方用量窗口）、`/ark-quota`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 40s——严格小于浏览器端 60s 轮询，保证每次轮询都触发上游刷新）、`/cmdcode-quota`（Command Code 用量，Bearer 调 `api.commandcode.ai/alpha/billing/credits` 等，缓存 40s）。缓存与超时时长来自设置面板（`network.*`）。凭证统一走官方 `ctx.credentials` 服务读取。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 1s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。同时注册 `settings.section` 设置页（余额监控），读写 `dsh-balance-monitor` 命名空间。
 
 状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
 
@@ -98,8 +118,10 @@ dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (浏览器注册表)
 ├── cordis.patch.yml    # 插入这一个组合插件行
 └── lib/
-    ├── index.js        # 服务端半：/balance RPC 通道（余额 + 官方用量窗口 + 回退账本）
-    └── client.js       # 浏览器半：侧边栏卡片（手写，无构建）
+    ├── index.js        # 服务端半：/balance RPC 通道（余额 + 官方用量窗口 + 回退账本）+ settings 接入
+    ├── config.js       # 设置 schema + 默认值（与设置面板字段一一对应）
+    ├── signature.js    # 火山方舟 SigV4 签名
+    └── client.js       # 浏览器半：侧边栏卡片 + 设置页（手写，无构建）
 ```
 
 ## 开发

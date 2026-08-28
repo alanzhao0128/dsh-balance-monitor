@@ -6,6 +6,42 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-08-27
+
+### Added
+
+- **Settings page** (Settings → 余额监控 / Balance Monitor): a `settings.section`
+  slot editing the `dsh-balance-monitor` namespace, persisted to
+  `~/.dsh/settings.yaml` via the official settings service — no more editing
+  `cordis.patch.yml` to tune the card.
+  - Display: `ui.showCard` (hide the sidebar card and stop provider
+    detection), `ui.warnThreshold` / `ui.dangerThreshold` (bar colour cutoffs).
+  - Refresh: `ui.pollMs` (card poll interval, default 60000),
+    `ui.providerPollMs` (provider detection, default 1000).
+  - Network: `network.cacheMs` (host quota cache, default 40000),
+    `network.timeoutMs` (Ark / Command Code upstream timeout, default 20000),
+    `network.platformTimeoutMs` (DeepSeek platform usage timeout, default 15000).
+  - Credentials: `credentials.file` (document filename relative to DSH home,
+    default `.credentials.yaml`).
+- **Platform token box** in the credentials group: a password field that
+  writes `DEEPSEEK_PLATFORM_TOKEN` through the official
+  `ctx.credentials` seam (`credentials.set`) — lands in
+  `~/.dsh/.credentials.yaml` under `refs:` with lock + atomic write, no file
+  editing. Shows configured / not-configured state and writability.
+- **Token-expired banner** on the DeepSeek card: when the platform usage API
+  answers 40002/40003 the host marks `platformTokenExpired` and the card shows
+  a red hint pointing at the settings page, instead of silently falling back
+  to the balance estimate.
+
+### Changed
+
+- Credentials are now read through the official `ctx.credentials` seam
+  (process env → managed document → `.env` fallbacks) instead of hand-rolled
+  regex parsing of `.credentials.yaml` — future credential-format changes are
+  absorbed by the seam, not the plugin.
+- All previous module constants (cache/timeout/poll) became settings-managed
+  defaults; behaviour is unchanged until a user edits the panel.
+
 ## [0.4.1] — 2026-08-27
 
 ### Fixed
@@ -129,7 +165,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
-[0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
+[0.5.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.5...0.4.0
 [0.3.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.3.4...0.3.5
