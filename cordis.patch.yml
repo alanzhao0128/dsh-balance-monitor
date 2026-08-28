@@ -3,4 +3,4 @@
 # entry (dsh.client declaration -> lib/client.js).
 - insert:
     - id: balance-monitor
-      name: 'dsh-balance-monitor'
+      name: '@alanzhao/dsh-balance-monitor'

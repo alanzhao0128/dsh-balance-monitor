@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.4] — 2026-08-28
+
+### Fixed
+
+- **npm install broke the profile boot**: the bundle patch's entry `name` was
+  the unscoped `dsh-balance-monitor`, but the package is published as the scoped
+  `@alanzhao/dsh-balance-monitor`. Cordis's loader imports the entry by that
+  name, so a fresh npm install failed with
+  `ERR_MODULE_NOT_FOUND: Cannot find package 'dsh-balance-monitor'`. The patch
+  now uses `@alanzhao/dsh-balance-monitor`.
+
 ## [0.6.3] — 2026-08-28
 
 ### Changed
@@ -271,6 +282,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.6.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.3...0.6.4
 [0.6.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.0...0.6.1
