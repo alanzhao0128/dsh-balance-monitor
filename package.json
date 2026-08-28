@@ -1,6 +1,6 @@
 {
   "name": "dsh-balance-monitor",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Channel-aware balance/usage card for DeepSeek Harness: DeepSeek official balance + spend windows, Volcano Ark Agent Plan quota bars.",
   "keywords": [
     "dsh",

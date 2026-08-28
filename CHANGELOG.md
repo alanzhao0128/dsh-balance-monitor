@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-08-28
+
+### Fixed
+
+- **Sidebar cards vanished** after upgrading to 0.5.1: schemastery fills an
+  absent `channels.enabled` array with `[]` (not `undefined`), so the client's
+  settings reader saw an empty list and rendered no cards. The schema now
+  declares `.default(CHANNEL_DEFAULT)` and the client falls back to all
+  channels on an empty list — the cards can never silently disappear.
+- **Channel checkboxes were unclickable** in the settings panel: the
+  channel-toggle handler called an undefined `onChange` (should have been
+  `setField`), throwing on every click. Fixed.
+
 ## [0.5.1] — 2026-08-28
 
 ### Added
@@ -189,6 +202,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.5.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.0...0.4.1
