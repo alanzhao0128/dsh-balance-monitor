@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-08-28
+
+### Changed
+
+- **Merged the two upstream timeouts into one**: `network.platformTimeoutMs`
+  (DeepSeek official usage) is gone; all quota/usage fetches (Volcano Ark,
+  Command Code, DeepSeek platform) now share `network.timeoutMs` (default 20 s).
+  The settings panel shows a single 上游超时 / Upstream timeout field.
+
 ## [0.6.2] — 2026-08-28
 
 ### Fixed
@@ -262,6 +271,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.6.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.2...0.6.0

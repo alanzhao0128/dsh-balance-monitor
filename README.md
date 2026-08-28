@@ -54,8 +54,7 @@ dsh plugin --profile web add dsh-balance-monitor
 | 显示 | `ui.dangerThreshold` | `70` | 用量 ≥ 该百分比进度条变红 |
 | 刷新 | `ui.pollMs` | `60` 秒 | 卡片刷新间隔（面板以秒显示，内部存毫秒） |
 | 网络 | `network.cacheMs` | `40` 秒 | 服务端配额缓存，建议保持低于卡片刷新间隔 |
-| 网络 | `network.timeoutMs` | `20` 秒 | 火山方舟 / Command Code 上游超时 |
-| 网络 | `network.platformTimeoutMs` | `15` 秒 | DeepSeek 平台用量接口超时 |
+| 网络 | `network.timeoutMs` | `20` 秒 | 上游超时（火山方舟 / Command Code / DeepSeek 官方用量） |
 | 凭证 | `credentials.file` | `.credentials.yaml` | 凭证文档文件名（相对 `$DSH_HOME`） |
 
 ### 渠道凭证

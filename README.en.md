@@ -54,8 +54,7 @@ Open dsh settings (gear) → **Balance Monitor** to edit the card's behaviour; s
 | Display | `ui.dangerThreshold` | `70` | Bar turns red at this used % |
 | Refresh | `ui.pollMs` | `60` s | Card refresh interval (the panel shows seconds; stored internally as ms) |
 | Network | `network.cacheMs` | `40` s | Host quota cache; keep below the card refresh interval |
-| Network | `network.timeoutMs` | `20` s | Volcano Ark / Command Code upstream timeout |
-| Network | `network.platformTimeoutMs` | `15` s | DeepSeek platform usage API timeout |
+| Network | `network.timeoutMs` | `20` s | Upstream timeout (Volcano Ark / Command Code / DeepSeek official usage) |
 | Credentials | `credentials.file` | `.credentials.yaml` | Credentials document filename (relative to `$DSH_HOME`) |
 
 ### Channel credentials
