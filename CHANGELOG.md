@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-08-28
+
+### Fixed
+
+- **Channel-credential panel still showed all "not configured"** (and region
+  `—`) even after the host fix: the client's `/credential-status` fetch
+  destructured `{ result }` from `connection.rpc.call(...)`, but `rpc.call`
+  resolves to `{ ok, value }` directly (the `{ result }` wrapper only applies
+  to `connection.api.*` calls). The fetch threw → `credStatus` stayed null.
+  Now reads `result.ok` / `result.value` directly, matching the other cards.
+
 ## [0.6.1] — 2026-08-28
 
 ### Fixed
@@ -251,6 +262,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.6.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.1...0.5.2
