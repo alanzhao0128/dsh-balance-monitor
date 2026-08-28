@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.5] — 2026-08-28
+
+### Fixed
+
+- **Browser bundle registered the unscoped id**: `lib/client.js` called
+  `__ModuleLoader__.load({ id: 'dsh-balance-monitor' })`, but the loader
+  expects the entry id to match the (scoped) package name, so the client
+  bundle failed to register with
+  `loaded without registering "@alanzhao/dsh-balance-monitor"`. The client now
+  registers as `@alanzhao/dsh-balance-monitor`.
+
 ## [0.6.4] — 2026-08-28
 
 ### Fixed
@@ -282,6 +293,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.6.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.4...0.6.5
 [0.6.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.3...0.6.4
 [0.6.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.1...0.6.2
