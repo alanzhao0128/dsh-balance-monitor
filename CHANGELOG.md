@@ -6,6 +6,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-08-28
+
+### Added
+
+- **Channel credentials group** in the settings panel: shows every credential
+  each channel needs and its status, split by ownership:
+  - Read-only rows (referenced by the DSH model configuration, decided via
+    `ctx.llm.listConfigurableProviders()` + `ctx.settings.describe()`):
+    `DEEPSEEK_API_KEY`, `COMMANDCODE_API_KEY`.
+  - Writable password boxes (plugin-specific): `DEEPSEEK_PLATFORM_TOKEN`
+    (existing, moved into the group, with the three-part explainer),
+    `ARK_ACCESS_KEY_ID`, `ARK_SECRET_ACCESS_KEY` — saved through the official
+    `credentials.set` seam, never written by the plugin.
+- New host RPC `/credential-status` (loopback): per-ref configured/writable/
+  source + `managedByDsh` flag, plus the resolved Ark region.
+
+### Changed
+
+- **Sidebar card follows the current session's provider again** (reverts the
+  0.5.1 fixed multi-card model): one card for the active channel (DeepSeek /
+  Volcano Ark / Command Code), unsupported placeholder otherwise, nothing
+  without a session. The `channels.enabled` setting and its checkboxes are
+  removed entirely.
+- **Ark region follows the DSH model configuration**: `fetchArkQuota` now
+  resolves the region from the huoshan provider's `baseURL`
+  (`ark.<region>.volces.com`), falling back to `cn-beijing`; no manual
+  selection needed.
+- `providerConfig()` resolves a configurable provider's config via its
+  declared `settingsPath`, covering both the top-level shape
+  (`dsh-llm-deepseek`, `settingsPath: []`) and the nested shape
+  (`dsh-llm-pi-ai`, `settingsPath: ["providers", "<id>"]`).
+
 ## [0.5.2] — 2026-08-28
 
 ### Fixed
@@ -202,6 +234,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.6.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.4.1...0.5.0
