@@ -33,10 +33,10 @@ DeepSeek 余额与花费窗口，直接显示在 dsh 侧边栏底部。
 dsh plugin --profile web add "github:alanzhao0128/dsh-balance-monitor#main"
 ```
 
-或从 npm（发布后）：
+或从 npm：
 
 ```sh
-dsh plugin --profile web add dsh-balance-monitor
+dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 ```
 
 然后重启 Web UI（`dsh --profile web`）。卡片出现在展开的侧边栏底部、设置按钮上方。

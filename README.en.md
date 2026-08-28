@@ -33,10 +33,10 @@ Works from source directly — the browser bundle is a hand-written classic scri
 dsh plugin --profile web add "github:alanzhao0128/dsh-balance-monitor#main"
 ```
 
-or from npm (once published):
+or from npm:
 
 ```sh
-dsh plugin --profile web add dsh-balance-monitor
+dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 ```
 
 Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom of the expanded sidebar, above Settings.
