@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Adapted to dsh 0.1.2-rc.1** (breaking platform upgrade):
+  - Host: settings registration moved from the removed
+    `installSettingsSection(ctx, settingsNamespace(...))` to
+    `settings.installSection(ctx, 'dsh-balance-monitor', ...)` via a lazy
+    `ctx.inject(['settings'])` (absent settings service is a silent no-op).
+  - Host: `rpc.handle` calls dropped the removed third `{ authority }`
+    argument.
+  - Host: new `/session-provider` RPC resolves the card's channel from
+    `ctx.agentDefaultModel.currentSelection()` (with a display name from the
+    LLM registry), replacing the removed browser `connection.api.sessions.models`
+    aggregate. DSH keeps the default in sync with session model switches, so
+    the card still follows the session channel.
+  - Client: settings saves go through the bound `scope.mutate(ops, revision)`
+    (replaces `connection.api.settings.mutate`); credential writes go through
+    `remote.credentials.set(ref, value)` (replaces
+    `connection.api.credentials.set`); the inject list adds `remote`,
+    `remote.credentials`.
+  - Packaging: `dsh.client.inject` no longer names the removed
+    `@deepseek-ai/dsh-client-runtime`; depends on `@deepseek-ai/schemastery`
+    only (dsh-settings no longer imported at runtime).
+
 ## [0.6.5] — 2026-08-28
 
 ### Fixed
