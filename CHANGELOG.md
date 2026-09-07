@@ -4,11 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.0] — 2026-09-07
 
 ### Changed
 
-- **Adapted to dsh 0.1.2-rc.1** (breaking platform upgrade):
+- **Adapted to dsh 0.1.2-rc.1** (breaking platform upgrade; requires the
+  0.1.2-rc.1 host — the old 0.1.1-rc.2 host does not provide the new APIs):
   - Host: settings registration moved from the removed
     `installSettingsSection(ctx, settingsNamespace(...))` to
     `settings.installSection(ctx, 'dsh-balance-monitor', ...)` via a lazy
@@ -316,6 +317,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.5...0.7.0
 [0.6.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.4...0.6.5
 [0.6.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.3...0.6.4
 [0.6.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.2...0.6.3
