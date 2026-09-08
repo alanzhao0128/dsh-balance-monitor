@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] — 2026-09-07
+
+### Fixed
+
+- **The card did not follow the model channel when switching between sessions
+  that use different channels** (in-session switches worked, cross-session did
+  not). The `/session-provider` RPC now resolves the *active session's* model
+  selection via `ctx.sessionController.resolveAgent(sessionId)` and the
+  session-scoped `modelSelection` projection (`pending ?? lastUsed`), falling
+  back to `agentDefaultModel.currentSelection()` when the session is
+  unresolvable. The client passes the active `sessionId` as the RPC payload.
+
 ## [0.7.0] — 2026-09-07
 
 ### Changed
@@ -317,6 +329,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.5...0.7.0
 [0.6.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.4...0.6.5
 [0.6.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.3...0.6.4
