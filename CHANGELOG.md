@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] — 2026-09-10
+
+### Changed
+
+- **Adapted to dsh 0.1.5-rc.1**: `connection.rpc.handle` is unusable upstream
+  (the connection plugin no longer injects `webServer`, so any plugin
+  registering a channel through it aborts boot with
+  `cannot get property "webServer" without inject` —
+  deepseek-ai/deepseek-harness discussion #5926). Official plugin RPC now
+  rides the shared `/api` channel as exact Fetch routes:
+  - Host: the five RPC channels (`/balance`, `/ark-quota`, `/cmdcode-quota`,
+    `/credential-status`, `/session-provider`) register via
+    `connection.fetch.register` as `/api/<channel>/snapshot` exact routes,
+    behind a `rpcHandle(ctx, channel, endpoint, handler)` shim that keeps the
+    old call shape (handler signatures unchanged). The `client-request` →
+    `server-response` envelope protocol is unchanged, including the official
+    `415` content-type and `400` bad-envelope branches; unexpected handler
+    throws answer `200 + { ok: false, error: { code: 'gateway/internal' } }`
+    so the browser client never leaves its graceful `{ ok: false }` path.
+  - Client: `connection.rpc.call('/api', '<channel>/snapshot', payload)`
+    replaces `connection.rpc.call('<channel>', 'snapshot', payload)` at all
+    five call sites; response parsing (`result.ok` / `result.value`) is
+    unchanged.
+
 ## [0.7.1] — 2026-09-07
 
 ### Fixed
@@ -329,6 +353,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.5...0.7.0
 [0.6.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.4...0.6.5
