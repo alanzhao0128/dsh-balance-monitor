@@ -41,6 +41,8 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom of the expanded sidebar, above Settings.
 
+> **Version requirement**: `0.7.2+` needs dsh `>= 0.1.5-rc.1` (dsh 0.1.5 removed the usable `connection.rpc.handle` path; the plugin's RPC moved to exact Fetch routes on the shared `/api` channel). On a dsh `0.1.2-rc.1` host, pin `0.7.1`.
+
 ## Configuration
 
 ### Settings panel (recommended)
@@ -95,8 +97,8 @@ Credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web UI Mo
 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
-- **Host half** (`lib/index.js`) — registers three RPC channels (loopback trust fence) on `ctx.connection`: `/balance` (DeepSeek balance + official usage windows + fallback ledger), `/ark-quota` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch), and `/cmdcode-quota` (Command Code usage, Bearer `api.commandcode.ai/alpha/billing/credits` etc., cached for 40s). Cache and timeout durations come from the settings panel (`network.*`); credentials are read through the official `ctx.credentials` service.
-- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of `session.models` (a local RPC), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; `commandcode` renders the usage windows; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check. It also registers a `settings.section` page (Balance Monitor) reading/writing the `dsh-balance-monitor` namespace; a new `/credential-status` RPC (credential status + region) decides which refs are read-only via `ctx.llm`/`ctx.settings`.
+- **Host half** (`lib/index.js`) — registers five RPC endpoints as exact Fetch routes on the shared `/api` channel via `connection.fetch.register` (inheriting the official trust fence and browser authentication): `balance/snapshot` (DeepSeek balance + official usage windows + fallback ledger), `ark-quota/snapshot` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch), `cmdcode-quota/snapshot` (Command Code usage, Bearer `api.commandcode.ai/alpha/billing/credits` etc., cached for 40s), `credential-status/snapshot` (credential status + region), and `session-provider/snapshot` (resolves the channel provider for a given session). Cache and timeout durations come from the settings panel (`network.*`); credentials are read through the official `ctx.credentials` service.
+- **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of the `/session-provider` RPC (passing the active `sessionId`; the host resolves the channel from that session's `modelSelection` projection, so the card follows cross-session switches too since 0.7.1), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; `commandcode` renders the usage windows; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check. It also registers a `settings.section` page (Balance Monitor) reading/writing the `dsh-balance-monitor` namespace; the `credential-status` endpoint (credential status + region) decides which refs are read-only via `ctx.llm`/`ctx.settings`.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
 
@@ -129,7 +131,7 @@ dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (browser roster)
 ├── cordis.patch.yml    # inserts the one combined plugin row
 └── lib/
-    ├── index.js        # host half: /balance + /ark-quota RPC channels + settings wiring
+    ├── index.js        # host half: five /api RPC endpoints (balance / Ark / Command Code / credentials / session channel) + settings wiring
     ├── config.js       # settings schema + defaults (mirrored by the panel)
     ├── signature.js    # Volcengine OpenAPI SigV4 signing (AK/SK)
     └── client.js       # browser half: sidebar footer card + settings page (hand-written, no build)

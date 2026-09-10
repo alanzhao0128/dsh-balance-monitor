@@ -41,6 +41,8 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 然后重启 Web UI（`dsh --profile web`）。卡片出现在展开的侧边栏底部、设置按钮上方。
 
+> **版本要求**：`0.7.2+` 需要 dsh `≥ 0.1.5-rc.1`（0.1.5 起官方弃用 `connection.rpc.handle`，插件 RPC 迁移到共享 `/api` 通道的精确 Fetch 路由）；dsh `0.1.2-rc.1` 宿主请固定安装 `0.7.1`。
+
 ## 配置
 
 ### 设置面板（推荐）
@@ -95,8 +97,8 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
-- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册四个 RPC 通道（loopback 信任围栏）：`/balance`（DeepSeek 余额+官方用量窗口）、`/ark-quota`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 40s——严格小于浏览器端 60s 轮询，保证每次轮询都触发上游刷新）、`/cmdcode-quota`（Command Code 用量，Bearer 调 `api.commandcode.ai/alpha/billing/credits` 等，缓存 40s）、`/credential-status`（凭证状态与区域）。缓存与超时时长来自设置面板（`network.*`）。凭证统一走官方 `ctx.credentials` 服务读取。
-- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。先通过 `sessions.list` 订阅 + 1s 轻量轮询 `session.models`（本地 RPC）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。同时注册 `settings.section` 设置页（余额监控），读写 `dsh-balance-monitor` 命名空间；新增 `/credential-status` RPC（凭证状态 + 区域解析，host 端从 `ctx.llm`/`ctx.settings` 判定哪些凭证被 DSH 模型配置引用）。
+- **服务端半**（`lib/index.js`）—— 通过 `connection.fetch.register` 在共享 `/api` 通道上注册 5 个 RPC 端点（继承官方信任围栏与浏览器认证）：`balance/snapshot`（DeepSeek 余额+官方用量窗口）、`ark-quota/snapshot`（火山方舟 Agent Plan 额度，每次调用签 AK/SK SigV4 调 `GetAFPUsage`，缓存 40s——严格小于浏览器端 60s 轮询，保证每次轮询都触发上游刷新）、`cmdcode-quota/snapshot`（Command Code 用量，Bearer 调 `api.commandcode.ai/alpha/billing/credits` 等，缓存 40s）、`credential-status/snapshot`（凭证状态与区域）、`session-provider/snapshot`（按会话解析渠道 provider）。缓存与超时时长来自设置面板（`network.*`）。凭证统一走官方 `ctx.credentials` 服务读取。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。通过 `sessions.list` 订阅 + 1s 轻量轮询 `/session-provider` RPC（携带当前 `sessionId`，host 端按该会话的 `modelSelection` 投影解析渠道；0.7.1 起跨会话切换也会跟随）感知当前会话的 provider，再按渠道注册表分发：`deepseek-official` 渲染余额卡片（每 60s 轮询一次余额，标签页重新可见时立即刷新）；未注册渠道渲染「暂不支持」占位；无会话则不渲染。渠道目录变化（`llm/adapters-updated` 事件）会立即触发重新判定。同时注册 `settings.section` 设置页（余额监控），读写 `dsh-balance-monitor` 命名空间；`credential-status` 端点（凭证状态 + 区域解析，host 端从 `ctx.llm`/`ctx.settings` 判定哪些凭证被 DSH 模型配置引用）。
 
 状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
 
@@ -129,7 +131,7 @@ dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (浏览器注册表)
 ├── cordis.patch.yml    # 插入这一个组合插件行
 └── lib/
-    ├── index.js        # 服务端半：/balance RPC 通道（余额 + 官方用量窗口 + 回退账本）+ settings 接入
+    ├── index.js        # 服务端半：5 个 /api RPC 端点（余额/方舟/Command Code/凭证状态/会话渠道）+ settings 接入
     ├── config.js       # 设置 schema + 默认值（与设置面板字段一一对应）
     ├── signature.js    # 火山方舟 SigV4 签名
     └── client.js       # 浏览器半：侧边栏卡片 + 设置页（手写，无构建）
