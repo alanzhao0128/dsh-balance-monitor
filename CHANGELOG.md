@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] — 2026-09-25
+
+### Fixed
+
+- **Google AI Pro 卡片：`Gemini 5h` 被截断成 `Gemini ...`**。组标签列宽
+  52px 装不下 `Gemini` + 窗口名，现已加宽到 64px（进度条相应由 72px 收到
+  62px，整行宽度不变）。
+
+### Changed
+
+- **Google AI Pro 卡片的进度条改为按「剩余额度」填充**，颜色也改为按剩余分档
+  （剩余 ≤ 30% 红、≤ 70% 黄、否则绿）。此前数字显示的是剩余百分比，而进度条
+  与配色沿用了 Ark / Command Code 的「已用」语义，导致「剩余 100%」渲染成一条
+  空进度条，容易被误读成额度已用尽。现在数字、填充比例、颜色三者语义一致：
+  满条 + 绿色 = 额度充足。
+
 ## [0.7.3] — 2026-09-25
 
 ### Added
@@ -379,6 +395,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.0...0.7.1
