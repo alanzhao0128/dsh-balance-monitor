@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] — 2026-09-25
+
+### Changed
+
+- **Google AI Pro 卡片的用量语义回归与火山方舟 / Command Code 一致**：数字改为
+  **已用百分比**（`100 - 剩余`），进度条按已用比例填充、配色按已用分档
+  （≥ danger 红、≥ warn 黄、否则绿），与两张同类的套餐额度卡完全同款。
+  0.7.4 曾把该卡单独改成"剩余"语义，虽然卡内自洽，但与既有的两张卡读法不同，
+  同一块侧边栏里出现两种口径反而更难扫读。
+- 折叠态同样改为显示已用%（优先取当前活跃模型组的 5h 窗口，其次任意 5h，最后
+  取用量最高的窗口），与方舟折叠态的选择逻辑一致。
+
 ## [0.7.4] — 2026-09-25
 
 ### Fixed
@@ -395,6 +407,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.4...0.7.5
 [0.7.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.1...0.7.2
