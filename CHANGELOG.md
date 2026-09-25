@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] — 2026-09-25
+
+### Added
+
+- **Google AI Pro 渠道卡片（cliproxy / CPA 反代）**：会话使用 `cliproxy`
+  provider（Google Antigravity 经 CLIProxyAPI 反代）时，侧边栏显示该渠道的
+  5 小时 / 每周剩余配额，按 `gemini` 与 `claude_gpt` 两个模型组分行，带重置
+  倒计时；折叠态显示 5h 窗口剩余比例。卡片沿用 Ark / Command Code 的进度条
+  语义（按已用比例着色），CPA 上报的是剩余量，卡内取 `100 - 剩余`。
+- 新增 host RPC `cpa-quota/snapshot`（走 0.7.2 起的 `/api` 精确路由）：
+  经 `network.cpaBaseUrl`（默认 `https://cpa.alanzhao.xyz`）读取 CPA 管理接口
+  上 `antigravity-priority` 插件探测到的配额快照；若快照为空（CPA/插件刚重启）
+  自动触发一次 `?mode=probe` 再读。沿用 40s 缓存 + 上游失败回退上次数据
+  （`stale: true`）的既有模式。
+- 新增两条可写渠道凭证（设置页 →「渠道凭证 → Google AI Pro（CPA 反代）」）：
+  `CPA_BASIC_AUTH`（nginx Basic，`user:pass`）与 `CPA_MANAGEMENT_KEY`
+  （CPA 管理密钥）。两者都会出现在 `/credential-status` 的状态列表里。
+- 新增设置项 `network.cpaBaseUrl`。
+
+### Changed
+
+- 管理接口请求同时携带两层独立凭据：`Authorization: Basic ...`（由 nginx 校验）
+  与 `X-CPA-Key: <management key>`（由 nginx 改写成上游
+  `Authorization: Bearer ...`）。二者不能共用一个 `Authorization` 头，这是该
+  头设计的由来。
+
 ## [0.7.2] — 2026-09-10
 
 ### Changed
@@ -353,6 +379,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.6.5...0.7.0

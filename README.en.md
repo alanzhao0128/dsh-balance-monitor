@@ -4,7 +4,7 @@ English | [简体中文](README.md)
 
 DeepSeek balance and spend windows, right in the dsh sidebar footer.
 
-A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that shows the current session's channel balance/usage in the sidebar footer, styled with the stock design tokens. The **DeepSeek official channel** shows balance plus today / 7-day / 30-day spend windows (official usage data when a platform token is set); the **Volcano Ark channel** shows Agent Plan quota bars (5h / weekly / monthly); the **Command Code channel** shows 5h / weekly / monthly usage windows (GOAT / Pro / Max plans).
+A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that shows the current session's channel balance/usage in the sidebar footer, styled with the stock design tokens. The **DeepSeek official channel** shows balance plus today / 7-day / 30-day spend windows (official usage data when a platform token is set); the **Volcano Ark channel** shows Agent Plan quota bars (5h / weekly / monthly); the **Command Code channel** shows 5h / weekly / monthly usage windows (GOAT / Pro / Max plans); the **Google AI Pro channel** (Antigravity reversed through CLIProxyAPI) shows 5h / weekly remaining quota for the Gemini and Claude/GPT model groups.
 
 <p align="center">
   <img src="docs/preview/balance-wide.png" alt="dsh-balance-monitor in the sidebar footer" width="280">
@@ -18,9 +18,10 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Live balance | Queries `GET https://api.deepseek.com/user/balance` through the host half, using the `DEEPSEEK_API_KEY` from `$DSH_HOME/.credentials.yaml` (env var wins) |
 | Today / 7d / 30d spend (official) | With `DEEPSEEK_PLATFORM_TOKEN` set, the host queries the official usage API `platform.deepseek.com/api/v0/usage/cost` (the same data the platform console shows) and sums per-day windows: 7d = today minus 6 days, 30d = today minus 29 days (both inclusive). Accurate no matter where else the API key is used |
 | Balance-delta fallback | Without the platform token (or when the official API fails), today falls back to a balance-drop ledger (only accumulating drops; refills never inflate or wash out spend); 7d/30d show `—` |
-| Channel awareness | The card follows the current session's model provider: the DeepSeek official channel shows balance/spend; the Volcano Ark channel shows Agent Plan bars; the Command Code channel shows usage windows; other channels show a "channel not supported" placeholder; no session renders nothing |
+| Channel awareness | The card follows the current session's model provider: the DeepSeek official channel shows balance/spend; the Volcano Ark channel shows Agent Plan bars; the Command Code channel shows usage windows; the Google AI Pro channel (`cliproxy`) shows 5h / weekly remaining quota; other channels show a "channel not supported" placeholder; no session renders nothing |
 | Volcano Ark Agent Plan | With AK/SK configured, calls the `GetAFPUsage` control-plane API (SigV4 signed) and shows 5h / weekly / monthly quota bars, colored by usage (green → amber → red) |
 | Command Code usage | With `COMMANDCODE_API_KEY` configured, calls `api.commandcode.ai/alpha/billing/credits` etc. and shows 5h / weekly / monthly used % with reset countdowns |
+| Google AI Pro quota | With the CPA management URL, Basic auth, and management key configured, reads the quota snapshot probed by the `antigravity-priority` plugin on your CPA and shows 5h / weekly remaining percentages plus reset countdowns for the Gemini and Claude+GPT model groups (an empty snapshot right after a CPA restart triggers one probe automatically) |
 | Placement | Registered on the official `sidebar.footer.action` slot — above Settings, no patch hacks |
 | Collapsed rail | Shrinks to a 36px circle with a compact balance and a tooltip |
 | Resilience | 60s polling + re-poll on tab visibility; on upstream failure the last known numbers stay visible (dimmed as stale) instead of an error flash |
@@ -41,7 +42,7 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom of the expanded sidebar, above Settings.
 
-> **Version requirement**: `0.7.2+` needs dsh `>= 0.1.5-rc.1` (dsh 0.1.5 removed the usable `connection.rpc.handle` path; the plugin's RPC moved to exact Fetch routes on the shared `/api` channel). On a dsh `0.1.2-rc.1` host, pin `0.7.1`.
+> **Version requirement**: `0.7.2+` needs dsh `>= 0.1.5-rc.1` (dsh 0.1.5 removed the usable `connection.rpc.handle` path; the plugin's RPC moved to exact Fetch routes on the shared `/api` channel). On a dsh `0.1.2-rc.1` host, pin `0.7.1`. The Google AI Pro channel arrived in `0.7.3`.
 
 ## Configuration
 
@@ -56,7 +57,8 @@ Open dsh settings (gear) → **Balance Monitor** to edit the card's behaviour; s
 | Display | `ui.dangerThreshold` | `70` | Bar turns red at this used % |
 | Refresh | `ui.pollMs` | `60` s | Card refresh interval (the panel shows seconds; stored internally as ms) |
 | Network | `network.cacheMs` | `40` s | Host quota cache; keep below the card refresh interval |
-| Network | `network.timeoutMs` | `20` s | Upstream timeout (Volcano Ark / Command Code / DeepSeek official usage) |
+| Network | `network.timeoutMs` | `20` s | Upstream timeout (Volcano Ark / Command Code / DeepSeek official usage / CPA management API) |
+| Network | `network.cpaBaseUrl` | `https://cpa.alanzhao.xyz` | CLIProxyAPI management address (quota source for the Google AI Pro channel) |
 | Credentials | `credentials.file` | `.credentials.yaml` | Credentials document filename (relative to `$DSH_HOME`) |
 
 ### Channel credentials
@@ -71,6 +73,8 @@ The settings panel's **「渠道凭证 / Channel credentials」 group** shows wh
 | Volcano Ark | `ARK_SECRET_ACCESS_KEY` | **writable** password box |
 | Volcano Ark | region | read-only, auto-follows the DSH model config (parsed from the huoshan provider's `baseURL`, e.g. `cn-beijing`) |
 | Command Code | `COMMANDCODE_API_KEY` | read-only (referenced by DSH model config), shows ✅/⚠️ status |
+| Google AI Pro | `CPA_BASIC_AUTH` | **writable** password field, `user:pass` — the Basic auth of the nginx in front of CPA (second lock) |
+| Google AI Pro | `CPA_MANAGEMENT_KEY` | **writable** password field — the CPA management key (third lock); sent as `X-CPA-Key` and rewritten by nginx into the upstream `Authorization: Bearer` |
 
 Writable boxes save through the official `ctx.credentials.set()` into `$DSH_HOME/.credentials.yaml` (`refs:` section, locked + atomic write); the plugin never writes the file itself.
 
@@ -90,14 +94,27 @@ Credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web UI Mo
 | `ARK_ACCESS_KEY_ID` | Volcano Ark channel | Volcengine access key for the control-plane API (Agent Plan quota) |
 | `ARK_SECRET_ACCESS_KEY` | Volcano Ark channel | Volcengine secret access key |
 | `COMMANDCODE_API_KEY` | Command Code channel | Command Code API key (`user_...`) for the 5h / weekly / monthly usage query |
+| `CPA_BASIC_AUTH` | Google AI Pro channel | Basic auth of the nginx in front of CPA, formatted `user:pass` |
+| `CPA_MANAGEMENT_KEY` | Google AI Pro channel | CPA management key, used to read the quota snapshot probed by the `antigravity-priority` plugin |
 
 > Get Ark AK/SK: sign in at [console.volcengine.com](https://console.volcengine.com) → Access Control → API Access Keys → create a key. Note: AK/SK are IAM account-level credentials that can operate all resources — keep them private.
+
+## Google AI Pro (cliproxy) prerequisites
+
+That channel's quota is **not** available from Google directly — it comes from your own [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (CPA) reverse proxy. The plugin reads the snapshot probed by a quota plugin on CPA's management API, so the CPA side needs:
+
+1. the management API enabled (`remote-management.secret-key` non-empty) and proxy forwarding allowed (`allow-remote: true`);
+2. a quota-provider plugin installed and enabled — [`antigravity-priority`](https://github.com/ygq-future/antigravity-priority) is recommended (`plugins.enabled: true` plus `plugins.configs.antigravity-priority.enabled: true`), which probes Antigravity's 5h and weekly windows;
+3. the management API exposed over TLS (put nginx/Caddy in front; publish only the inference path publicly and add a Basic layer on `/v0/`);
+4. those two credentials stored as `CPA_BASIC_AUTH` / `CPA_MANAGEMENT_KEY`, with `network.cpaBaseUrl` pointing at the deployment.
+
+> Management requests carry both `Authorization: Basic ...` (for the proxy) and `X-CPA-Key` (rewritten by the proxy into the upstream `Authorization: Bearer`) — the two cannot share a single `Authorization` header.
 
 ## How it works
 
 One combined plugin row (`dsh.bundle` patch + `dsh.client` roster declaration):
 
-- **Host half** (`lib/index.js`) — registers five RPC endpoints as exact Fetch routes on the shared `/api` channel via `connection.fetch.register` (inheriting the official trust fence and browser authentication): `balance/snapshot` (DeepSeek balance + official usage windows + fallback ledger), `ark-quota/snapshot` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch), `cmdcode-quota/snapshot` (Command Code usage, Bearer `api.commandcode.ai/alpha/billing/credits` etc., cached for 40s), `credential-status/snapshot` (credential status + region), and `session-provider/snapshot` (resolves the channel provider for a given session). Cache and timeout durations come from the settings panel (`network.*`); credentials are read through the official `ctx.credentials` service.
+- **Host half** (`lib/index.js`) — registers six RPC endpoints as exact Fetch routes on the shared `/api` channel via `connection.fetch.register` (inheriting the official trust fence and browser authentication): `balance/snapshot` (DeepSeek balance + official usage windows + fallback ledger), `ark-quota/snapshot` (Volcano Ark Agent Plan quota, signed with AK/SK SigV4 against `GetAFPUsage`, cached for 40s — strictly below the browser's 60s poll so every poll triggers a fresh upstream fetch), `cmdcode-quota/snapshot` (Command Code usage, Bearer `api.commandcode.ai/alpha/billing/credits` etc., cached for 40s), `cpa-quota/snapshot` (Google AI Pro quota, read from the `antigravity-priority` snapshot on CPA's management API), `credential-status/snapshot` (credential status + region), and `session-provider/snapshot` (resolves the channel provider for a given session). Cache and timeout durations come from the settings panel (`network.*`); credentials are read through the official `ctx.credentials` service.
 - **Browser half** (`lib/client.js`) — a zero-dependency classic-script bundle registering a `sidebar.footer.action` entry. It tracks the current session's provider via `sessions.list` subscription plus a light 1s poll of the `/session-provider` RPC (passing the active `sessionId`; the host resolves the channel from that session's `modelSelection` projection, so the card follows cross-session switches too since 0.7.1), then dispatches through the channel registry: `deepseek-official` renders the balance card (60s polling, re-poll on tab visibility); `huoshan` renders the Ark quota bars; `commandcode` renders the usage windows; unregistered channels render the unsupported placeholder; no session renders nothing. The `llm/adapters-updated` remote event triggers an immediate re-check. It also registers a `settings.section` page (Balance Monitor) reading/writing the `dsh-balance-monitor` namespace; the `credential-status` endpoint (credential status + region) decides which refs are read-only via `ctx.llm`/`ctx.settings`.
 
 State file (`$DSH_HOME/storages/balance-monitor.json`):
