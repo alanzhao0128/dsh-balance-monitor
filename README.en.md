@@ -168,6 +168,13 @@ server {
 
   # Inference path: passthrough, authenticated by CPA's own API key
   location /v1/ {
+    # Key detail: nginx defaults to 1m here while a 0.5M-token context is
+    # already >=2MB of plain text, so large contexts fail with 413 before the
+    # request ever reaches CPA
+    client_max_body_size 128m;
+    # Stream large bodies straight to the upstream instead of buffering to disk
+    proxy_request_buffering off;
+
     proxy_pass http://127.0.0.1:8317;
     proxy_buffering off;
     proxy_read_timeout 3600s;
@@ -220,6 +227,8 @@ curl -s -u user:pass -H 'X-CPA-Key: <management key>' \
 - **Quota endpoint returns 501 / snapshot is empty**: no quota-provider plugin installed or enabled on CPA. When the snapshot is empty (e.g. right after a CPA restart) this plugin automatically POSTs `.../run?mode=probe` once and re-reads; still empty means the probe itself failed.
 - **Basic and Bearer fight over the same `Authorization` header**: send the management key as `X-CPA-Key` and let nginx rewrite it into the upstream Bearer, as above; passing both `Authorization` flavours just overwrites one with the other.
 - **Repeated auth failures ban the source IP**: CPA bans a source IP for ~30 minutes after too many failed management attempts. Behind a proxy every request looks like one IP, so triggering it takes down the whole chain — configure `trusted-proxies`, and `docker restart <container>` to clear a ban.
+- **`413 Request Entity Too Large` (the response body is nginx's HTML error page)**: you hit nginx's built-in `client_max_body_size` default of **1m**. It has nothing to do with the model's token limit — the request is rejected at the proxy and never reaches CPA or the model. A 0.5M-token context is already >=2MB of plain text, so any large context triggers it; add `client_max_body_size 128m;` to `location /v1/` as shown above. Note the directive is **not** inherited from a sibling location like `/v0/` — it must be set in `/v1/` itself (or in an enclosing `server`/`http` block).
+- **Large contexts upload slowly**: `proxy_request_buffering off` removes nginx's disk buffering, but the body still has to be transferred in full, so the bottleneck becomes the **client's upstream bandwidth** (measured: 3MB ≈ 15s). No config setting fixes that part.
 - **`http2 on;` is unsupported on nginx 1.24**: older versions need `listen 443 ssl http2;`; the new syntax aborts nginx with `unknown directive "http2"`.
 - **TLS is mandatory**: Basic auth is plaintext; serving it over bare HTTP broadcasts the password.
 - **Inference and management use different keys**: the `/v1/` API key (`CLIPROXYAPI_KEY` in your dsh models) and the `/v0/` management key are unrelated.

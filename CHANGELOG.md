@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **README 的 nginx 示例缺 `client_max_body_size`，照着搭会撞 413**。nginx 在
+  `location /v1/` 的内置默认上限只有 **1m**，而 0.5M token 的上下文光文本就
+  ≥2MB —— 超限时请求在反代就被拒（响应体是 nginx 的 HTML 错误页，形如
+  `413 Request Entity Too Large`），CPA 与模型都收不到，也与模型自身的 token
+  上限无关。示例的 `/v1/` 现补上 `client_max_body_size 128m;` 与
+  `proxy_request_buffering off;`（大 body 直传上游，不先落盘缓冲），并在踩坑
+  清单新增两条：413 的判定与「该指令不会从兄弟 location 继承」，以及大上下文的
+  真正瓶颈是**客户端上行带宽**（实测反代侧 3MB ≈ 15s）。
+  仅文档更新，未发版（npm 上仍是 0.7.6）。
+
 ## [0.7.6] — 2026-09-25
 
 ### Changed

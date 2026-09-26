@@ -168,6 +168,12 @@ server {
 
   # 推理路径：直通，靠 CPA 自己的 API key 鉴权
   location /v1/ {
+    # 关键：nginx 内置默认只有 1m，而 0.5M token 的上下文光文本就 ≥2MB，
+    # 超限会直接 413（请求根本到不了 CPA），大上下文必须放开
+    client_max_body_size 128m;
+    # 大 body 直接流给上游，不先缓冲落盘
+    proxy_request_buffering off;
+
     proxy_pass http://127.0.0.1:8317;
     proxy_buffering off;
     proxy_read_timeout 3600s;
@@ -219,6 +225,8 @@ curl -s -u user:pass -H 'X-CPA-Key: <management key>' \
 - **配额接口 501 / 快照为空**：CPA 上没装或没启用配额 provider 插件。快照为空时（例如 CPA 刚重启）本插件会自动 POST 一次 `.../run?mode=probe` 再读一次，第二次仍空则说明插件侧没探测成功。
 - **Basic 与 Bearer 抢同一个 `Authorization` 头**：必须按上面的写法把 management key 放进 `X-CPA-Key`，由 nginx 改写成上游 Bearer；同时传两种 `Authorization` 只会互相覆盖。
 - **连续鉴权失败会封源 IP**：CPA 对失败的管理鉴权有暴力破解封禁（约 30 分钟）。经反代时所有请求源 IP 相同，一旦触发就是整条链路不可用 —— 所以务必配 `trusted-proxies`；已经触发时 `docker restart <容器>` 可清除封禁。
+- **`413 Request Entity Too Large`（响应体是 nginx 的 HTML 错误页）**：撞上了 nginx `client_max_body_size` 的**内置默认值 1m**。它跟 token 上限无关，请求在反代就被拒了，CPA 和模型根本没收到。0.5M token 的上下文光文本就 ≥2MB，所以只要用大上下文就必然触发 —— 按上面的示例在 `location /v1/` 里加上 `client_max_body_size 128m;`。注意该指令**不会**从 `/v0/` 那样的兄弟 location 继承，必须写在 `/v1/` 自己（或写在上层 `server`/`http` 块里）。
+- **大上下文上传慢**：`proxy_request_buffering off` 去掉了 nginx 的落盘缓冲，但 body 仍要完整传到反代，瓶颈是**客户端上行带宽**（实测 3MB ≈ 15s）。这部分不是配置能解决的。
 - **`http2 on;` 在 nginx 1.24 上不支持**：老版本只能写 `listen 443 ssl http2;`，写错会 `unknown directive "http2"` 导致 nginx 起不来。
 - **必须走 TLS**：Basic 是明文凭据，公网裸 HTTP 等于把密码广播出去。
 - **推理与管理是两套密钥**：`/v1/` 用的 API key（DSH 模型里的 `CLIPROXYAPI_KEY`）和 `/v0/` 用的 management key 互不通用。
