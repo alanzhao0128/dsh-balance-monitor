@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.6] — 2026-09-25
+
+### Changed
+
+- **`network.cpaBaseUrl` 默认值改为空**。此前它硬编码了本项目维护者自己的
+  CLIProxyAPI 部署地址，这既把一个人的私有主机名发布给了所有使用者，也会让
+  其他使用者的配额请求打到陌生人的服务器上。现在该字段默认留空，cliproxy 渠道
+  在填写前保持休眠（host 端返回 `unconfigured`，不发任何网络请求）。
+  **升级后需要手动填写**：升级前依赖旧默认值的安装请在设置面板 →「网络 → CPA 地址」
+  填回自己的地址，否则卡片会提示「未配置 CPA 地址」。
+- 设置面板的 CPA 地址提示改为占位示例 `https://cpa.example.com`；空值输入会自动
+  去掉首尾空格与结尾 `/`（`https://host/` 也能用）。
+
+### Added
+
+- **卡片空状态**：CPA 地址未配置 / 凭证被拒时，卡片显示对应的说明文字
+  （「未配置 CPA 地址」/「CPA 凭证未配置或被拒绝」）而不是一张空卡片；
+  折叠态与 tooltip 同步显示原因。
+- **README 新增「Google AI Pro（CLIProxyAPI）渠道搭建」完整指南**（中英双语）：
+  这条链路无法复用现成接口（Google 侧没有配额 API，CPA 自身也不暴露配额，必须
+  由配额插件探测），因此补上可复现的全流程 —— 链路图、CPA `config.yaml`
+  （`allow-remote` / `remote-management.secret-key` / `plugins` / `trusted-proxies`）、
+  容器只监听回环、nginx 反代示例（限流 + `/v1/` 直通 + `/v0/` Basic +
+  `Authorization` 头改写 + 其余 404）、插件侧三个字段怎么填、三步 curl 自检，
+  以及踩坑清单（501 与空快照、认证头冲突、**连续失败封源 IP 约 30 分钟**、
+  nginx 1.24 的 `http2 on;` 不支持、必须 TLS、推理与管理是两套密钥）。
+  文档中所有主机名均为 `cpa.example.com` 占位。
+
 ## [0.7.5] — 2026-09-25
 
 ### Changed
@@ -42,7 +70,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   倒计时；折叠态显示 5h 窗口剩余比例。卡片沿用 Ark / Command Code 的进度条
   语义（按已用比例着色），CPA 上报的是剩余量，卡内取 `100 - 剩余`。
 - 新增 host RPC `cpa-quota/snapshot`（走 0.7.2 起的 `/api` 精确路由）：
-  经 `network.cpaBaseUrl`（默认 `https://cpa.alanzhao.xyz`）读取 CPA 管理接口
+  经 `network.cpaBaseUrl`（默认**留空**，见 0.7.6）读取 CPA 管理接口
   上 `antigravity-priority` 插件探测到的配额快照；若快照为空（CPA/插件刚重启）
   自动触发一次 `?mode=probe` 再读。沿用 40s 缓存 + 上游失败回退上次数据
   （`stale: true`）的既有模式。
@@ -407,6 +435,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.6]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.5...0.7.6
 [0.7.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.4...0.7.5
 [0.7.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.2...0.7.3

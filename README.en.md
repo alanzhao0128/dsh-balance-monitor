@@ -21,7 +21,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Channel awareness | The card follows the current session's model provider: the DeepSeek official channel shows balance/spend; the Volcano Ark channel shows Agent Plan bars; the Command Code channel shows usage windows; the Google AI Pro channel (`cliproxy`) shows 5h / weekly remaining quota; other channels show a "channel not supported" placeholder; no session renders nothing |
 | Volcano Ark Agent Plan | With AK/SK configured, calls the `GetAFPUsage` control-plane API (SigV4 signed) and shows 5h / weekly / monthly quota bars, colored by usage (green → amber → red) |
 | Command Code usage | With `COMMANDCODE_API_KEY` configured, calls `api.commandcode.ai/alpha/billing/credits` etc. and shows 5h / weekly / monthly used % with reset countdowns |
-| Google AI Pro quota | With the CPA management URL, Basic auth, and management key configured, reads the quota snapshot probed by the `antigravity-priority` plugin on your CPA and shows 5h / weekly remaining percentages plus reset countdowns for the Gemini and Claude+GPT model groups (an empty snapshot right after a CPA restart triggers one probe automatically) |
+| Google AI Pro quota | With the CPA management URL, Basic auth, and management key configured, reads the quota snapshot probed by the `antigravity-priority` plugin on your CPA and shows 5h / weekly remaining percentages plus reset countdowns for the Gemini and Claude+GPT model groups (an empty snapshot right after a CPA restart triggers one probe automatically). **The server side is yours to build — see [the setup guide](#setting-up-the-google-ai-pro-cliproxyapi-channel)** |
 | Placement | Registered on the official `sidebar.footer.action` slot — above Settings, no patch hacks |
 | Collapsed rail | Shrinks to a 36px circle with a compact balance and a tooltip |
 | Resilience | 60s polling + re-poll on tab visibility; on upstream failure the last known numbers stay visible (dimmed as stale) instead of an error flash |
@@ -58,7 +58,7 @@ Open dsh settings (gear) → **Balance Monitor** to edit the card's behaviour; s
 | Refresh | `ui.pollMs` | `60` s | Card refresh interval (the panel shows seconds; stored internally as ms) |
 | Network | `network.cacheMs` | `40` s | Host quota cache; keep below the card refresh interval |
 | Network | `network.timeoutMs` | `20` s | Upstream timeout (Volcano Ark / Command Code / DeepSeek official usage / CPA management API) |
-| Network | `network.cpaBaseUrl` | `https://cpa.alanzhao.xyz` | CLIProxyAPI management address (quota source for the Google AI Pro channel) |
+| Network | `network.cpaBaseUrl` | empty | **Your own** CLIProxyAPI management address (quota source for the Google AI Pro channel); when empty that channel reads "CPA base URL not configured" — see [the setup guide](#setting-up-the-google-ai-pro-cliproxyapi-channel) |
 | Credentials | `credentials.file` | `.credentials.yaml` | Credentials document filename (relative to `$DSH_HOME`) |
 
 ### Channel credentials
@@ -99,16 +99,132 @@ Credentials live in `$DSH_HOME/.credentials.yaml` (write them from the Web UI Mo
 
 > Get Ark AK/SK: sign in at [console.volcengine.com](https://console.volcengine.com) → Access Control → API Access Keys → create a key. Note: AK/SK are IAM account-level credentials that can operate all resources — keep them private.
 
-## Google AI Pro (cliproxy) prerequisites
+## Setting up the Google AI Pro (CLIProxyAPI) channel
 
-That channel's quota is **not** available from Google directly — it comes from your own [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (CPA) reverse proxy. The plugin reads the snapshot probed by a quota plugin on CPA's management API, so the CPA side needs:
+This channel has **no ready-made public endpoint**: Google exposes no queryable quota API, and [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (CPA) does not expose quota by itself either — a **quota-provider plugin** running on CPA has to probe Antigravity's 5-hour / weekly windows, and this plugin reads that probe's snapshot. So seeing this card means wiring up the chain below yourself:
 
-1. the management API enabled (`remote-management.secret-key` non-empty) and proxy forwarding allowed (`allow-remote: true`);
-2. a quota-provider plugin installed and enabled — [`antigravity-priority`](https://github.com/ygq-future/antigravity-priority) is recommended (`plugins.enabled: true` plus `plugins.configs.antigravity-priority.enabled: true`), which probes Antigravity's 5h and weekly windows;
-3. the management API exposed over TLS (put nginx/Caddy in front; publish only the inference path publicly and add a Basic layer on `/v0/`);
-4. those two credentials stored as `CPA_BASIC_AUTH` / `CPA_MANAGEMENT_KEY`, with `network.cpaBaseUrl` pointing at the deployment.
+```
+dsh plugin ──HTTPS:443──▶ nginx (TLS + Basic auth + rate limit)
+                           └──▶ CPA 127.0.0.1:8317 (management key)
+                                  └──▶ antigravity-priority plugin (probes Antigravity quota)
+                                         └──▶ Antigravity upstream
+```
 
-> Management requests carry both `Authorization: Basic ...` (for the proxy) and `X-CPA-Key` (rewritten by the proxy into the upstream `Authorization: Bearer`) — the two cannot share a single `Authorization` header.
+`network.cpaBaseUrl` defaults to **empty** (this project ships nobody's address), and the card then reads "CPA base URL not configured". Fill in your address and the two credentials to light it up.
+
+### 1. CPA side
+
+CPA `config.yaml` (v7.3+):
+
+```yaml
+# Management API: secret-key must be non-empty, otherwise /v0/management/* is unavailable
+remote-management:
+  secret-key: "<strong random key — this becomes CPA_MANAGEMENT_KEY>"
+
+# Allow non-localhost callers on the management API (nginx forwards into it)
+allow-remote: true
+
+# Quota probe plugin
+plugins:
+  enabled: true
+  dir: "plugins"
+  configs:
+    antigravity-priority:
+      enabled: true
+      state_cache_path: "/root/.cli-proxy-api/antigravity-priority-cache.json"
+
+# IMPORTANT: declare the proxy's source subnet so CPA sees real client IPs.
+# Without it every proxied request shares one IP, and CPA bans a source IP for
+# ~30 minutes after repeated failed management auth — locking out your own chain.
+trusted-proxies:
+  - "172.23.0.0/16"
+```
+
+Install the [`antigravity-priority`](https://github.com/ygq-future/antigravity-priority) quota plugin into `plugins/` (a Go c-shared `.so`; it reports `supports_quota: false` and exposes its own `plugins/antigravity-priority/snapshot/latest`, `run?mode=probe`, `samples` and `diagnostics` routes instead of the standard CPA quota API). **Dropping the plugin in without enabling it means an always-empty snapshot.**
+
+Keep the container on loopback and publish only 443:
+
+```yaml
+# docker-compose.yml
+ports:
+  - "127.0.0.1:8317:8317"
+volumes:
+  - ./plugins:/CLIProxyAPI/plugins
+```
+
+### 2. nginx reverse proxy (two locks + path lockdown)
+
+Pass `/v1/` (inference) through, put a Basic layer on `/v0/` (management), 404 everything else, and rate-limit to blunt brute force:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=cpa_mgmt:10m rate=30r/m;
+
+server {
+  listen 443 ssl http2;          # nginx 1.24 and older: http2 belongs on the listen line
+  server_name cpa.example.com;   # ← your own domain
+
+  ssl_certificate     /etc/letsencrypt/live/cpa.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/cpa.example.com/privkey.pem;
+
+  # Inference path: passthrough, authenticated by CPA's own API key
+  location /v1/ {
+    proxy_pass http://127.0.0.1:8317;
+    proxy_buffering off;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+  }
+
+  # Management path: Basic auth + rate limit + auth-header rewrite
+  location /v0/ {
+    limit_req zone=cpa_mgmt burst=5 nodelay;
+    auth_basic "CPA";
+    auth_basic_user_file /etc/nginx/.htpasswd-cpa;
+
+    proxy_pass http://127.0.0.1:8317;
+    # Key detail: Basic occupies the Authorization header, but CPA only accepts
+    # Authorization: Bearer. The client therefore sends the management key as
+    # X-CPA-Key and nginx rewrites it into Bearer for the upstream.
+    proxy_set_header Authorization "Bearer $http_x_cpa_key";
+  }
+
+  location / { return 404; }
+}
+```
+
+> `/v0/` only serves this plugin, so keep its blast radius small — add an IP allowlist or keep it on a private network / WireGuard if you can.
+
+### 3. Plugin side
+
+| Where | What |
+|---|---|
+| Settings → Network → **CPA base URL** | `https://cpa.example.com` (your nginx entry point — do **not** append `/v0`) |
+| Settings → Channel credentials → **Basic auth** | `CPA_BASIC_AUTH`, formatted `user:pass` (matching nginx `.htpasswd-cpa`) |
+| Settings → Channel credentials → **Management key** | `CPA_MANAGEMENT_KEY`, i.e. CPA's `remote-management.secret-key` |
+
+### 4. Self-check
+
+```bash
+# (1) no Basic → 401 (nginx rejects)
+curl -s -o /dev/null -w '%{http_code}\n' https://cpa.example.com/v0/management/quota/providers
+
+# (2) Basic but no management key → 401 (CPA rejects)
+curl -s -o /dev/null -w '%{http_code}\n' -u user:pass https://cpa.example.com/v0/management/quota/providers
+
+# (3) both → 200
+curl -s -u user:pass -H 'X-CPA-Key: <management key>' \
+  https://cpa.example.com/v0/management/plugins/antigravity-priority/snapshot/latest
+```
+
+### 5. Pitfalls
+
+- **Quota endpoint returns 501 / snapshot is empty**: no quota-provider plugin installed or enabled on CPA. When the snapshot is empty (e.g. right after a CPA restart) this plugin automatically POSTs `.../run?mode=probe` once and re-reads; still empty means the probe itself failed.
+- **Basic and Bearer fight over the same `Authorization` header**: send the management key as `X-CPA-Key` and let nginx rewrite it into the upstream Bearer, as above; passing both `Authorization` flavours just overwrites one with the other.
+- **Repeated auth failures ban the source IP**: CPA bans a source IP for ~30 minutes after too many failed management attempts. Behind a proxy every request looks like one IP, so triggering it takes down the whole chain — configure `trusted-proxies`, and `docker restart <container>` to clear a ban.
+- **`http2 on;` is unsupported on nginx 1.24**: older versions need `listen 443 ssl http2;`; the new syntax aborts nginx with `unknown directive "http2"`.
+- **TLS is mandatory**: Basic auth is plaintext; serving it over bare HTTP broadcasts the password.
+- **Inference and management use different keys**: the `/v1/` API key (`CLIPROXYAPI_KEY` in your dsh models) and the `/v0/` management key are unrelated.
+
+> This project ships none of the server-side pieces above and carries no default address — you deploy CPA + the quota plugin + a reverse proxy, then fill the address into `network.cpaBaseUrl`.
 
 ## How it works
 
