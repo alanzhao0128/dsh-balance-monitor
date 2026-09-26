@@ -263,7 +263,7 @@ dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (浏览器注册表)
 ├── cordis.patch.yml    # 插入这一个组合插件行
 └── lib/
-    ├── index.js        # 服务端半：5 个 /api RPC 端点（余额/方舟/Command Code/凭证状态/会话渠道）+ settings 接入
+    ├── index.js        # 服务端半：6 个 /api RPC 端点（余额/方舟/Command Code/Google AI Pro/凭证状态/会话渠道）+ settings 接入
     ├── config.js       # 设置 schema + 默认值（与设置面板字段一一对应）
     ├── signature.js    # 火山方舟 SigV4 签名
     └── client.js       # 浏览器半：侧边栏卡片 + 设置页（手写，无构建）
