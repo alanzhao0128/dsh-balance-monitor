@@ -4,7 +4,26 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.7] — 2026-09-26
+
+### Added
+
+- **CPA 快照过期自愈**：`antigravity-priority` 的后台定时调度由它自己的运行时
+  开关 `auto_apply` 控制，而该开关**默认关闭** —— 关闭时插件只在被显式要求时
+  才探测一次。于是照 README 搭好、但没开 `auto_apply` 的部署，快照会永远停在
+  最后一次探测的数字上：卡片不报错、也有数，但**几小时都不动**（0.7.6 及以前
+  本插件只在快照**为空**时才补探测，对"有数据但过期"无能为力）。
+  现在 host 端把「过期」与「为空」同等对待：快照超过 `network.cpaStaleMs`
+  即补一次探测，且**只探测、不写回凭证优先级**，不改变 CPA 侧的账号调度行为。
+  补探测是 fire-and-forget（探测会逐个凭证打到 Google、可能耗时数分钟，而卡片
+  每 60 秒轮询一次，RPC 绝不能等它），本次先返回旧数据并标 `stale: true`
+  （卡片渲染成半透明），下次轮询自然拿到新数据；两次补探测之间有 5 分钟节流，
+  避免探测持续失败时把 Google 配额接口打爆。
+- 新增设置项 `network.cpaStaleMs`（默认 `1200` 秒），设置面板 →「网络」可调，
+  建议大于 CPA 侧的定时探测周期（插件默认 15 分钟）。
+- README（中英）在搭建指南里明确写出 `auto_apply` 这个坑：默认关闭会导致卡片
+  冻住，给出两条解法（开启插件原生调度 / 依赖本插件兜底），并附排查方法
+  （看 `diagnostics` 的 `management_api.auto_apply` 与 `run_history`）。
 
 ### Fixed
 
@@ -16,7 +35,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `proxy_request_buffering off;`（大 body 直传上游，不先落盘缓冲），并在踩坑
   清单新增两条：413 的判定与「该指令不会从兄弟 location 继承」，以及大上下文的
   真正瓶颈是**客户端上行带宽**（实测反代侧 3MB ≈ 15s）。
-  仅文档更新，未发版（npm 上仍是 0.7.6）。
 
 ## [0.7.6] — 2026-09-25
 
@@ -449,6 +467,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.7]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.6...0.7.7
 [0.7.6]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.5...0.7.6
 [0.7.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.4...0.7.5
 [0.7.4]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.3...0.7.4

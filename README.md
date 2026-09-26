@@ -59,6 +59,7 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 | 网络 | `network.cacheMs` | `40` 秒 | 服务端配额缓存，建议保持低于卡片刷新间隔 |
 | 网络 | `network.timeoutMs` | `20` 秒 | 上游超时（火山方舟 / Command Code / DeepSeek 官方用量 / CPA 管理接口） |
 | 网络 | `network.cpaBaseUrl` | 留空 | **你自己的** CLIProxyAPI 管理地址（Google AI Pro 渠道的配额来源）；留空则该渠道显示「未配置 CPA 地址」，见下文[搭建指南](#google-ai-procliproxy渠道搭建) |
+| 网络 | `network.cpaStaleMs` | `1200` 秒 | CPA 快照超过该时长即视为过期，插件自动补一次探测（建议大于 CPA 侧的定时探测周期） |
 | 凭证 | `credentials.file` | `.credentials.yaml` | 凭证文档文件名（相对 `$DSH_HOME`） |
 
 ### 渠道凭证
@@ -142,6 +143,13 @@ trusted-proxies:
 
 把配额插件 [`antigravity-priority`](https://github.com/ygq-future/antigravity-priority) 装进 `plugins/` 目录（Go 编译的 c-shared `.so`；它 `supports_quota: false`，不走 CPA 标准配额接口，而是提供自己的 `plugins/antigravity-priority/snapshot/latest`、`run?mode=probe`、`samples`、`diagnostics` 路由）。**只放插件不启用 = 快照永远为空**。
 
+> **⚠️ 还要让插件真的会探测，否则卡片会"冻住"。** `antigravity-priority` 的后台定时调度由它自己的运行时开关 **`auto_apply`** 控制，而该开关**默认关闭** —— 关闭时插件只在被显式要求时才探测一次，于是快照会永远停在最后一次探测的数字上（症状：卡片不报错、也有数，但几个小时都不动）。两条路任选：
+>
+> - **开启插件原生调度**：在 CPA 管理面板的「⚙️ 配置中心」打开 **自动定时调度 (`auto_apply`)**（周期默认 15 分钟）。它会周期性探测**并写回凭证优先级** —— 这正是该插件的核心功能，想要它的双窗口调度与 429 熔断就应该开。
+> - **什么都不做**：本插件会在快照超过 `network.cpaStaleMs`（默认 20 分钟）时**自动补一次探测**（只探测、不写回优先级），保证卡片不会一直停在旧数字上；此时卡片会把数字渲染成半透明以示"非最新"。
+>
+> 排查方法：`GET .../plugins/antigravity-priority/diagnostics` 看 `management_api.auto_apply` 与 `run_history` —— 若 `run_history` 只有一条且时间很久远，就是没人探测。
+
 容器只监听回环，公网只暴露 443：
 
 ```yaml
@@ -223,6 +231,7 @@ curl -s -u user:pass -H 'X-CPA-Key: <management key>' \
 ### 5. 踩坑清单
 
 - **配额接口 501 / 快照为空**：CPA 上没装或没启用配额 provider 插件。快照为空时（例如 CPA 刚重启）本插件会自动 POST 一次 `.../run?mode=probe` 再读一次，第二次仍空则说明插件侧没探测成功。
+- **卡片有数但几小时不动**：CPA 侧没人探测 —— 即上面的 `auto_apply` 没开。本插件会在快照过期（默认 20 分钟）后自动补探测兜底，但要让数据持续新鲜，建议直接开启插件侧调度。
 - **Basic 与 Bearer 抢同一个 `Authorization` 头**：必须按上面的写法把 management key 放进 `X-CPA-Key`，由 nginx 改写成上游 Bearer；同时传两种 `Authorization` 只会互相覆盖。
 - **连续鉴权失败会封源 IP**：CPA 对失败的管理鉴权有暴力破解封禁（约 30 分钟）。经反代时所有请求源 IP 相同，一旦触发就是整条链路不可用 —— 所以务必配 `trusted-proxies`；已经触发时 `docker restart <容器>` 可清除封禁。
 - **`413 Request Entity Too Large`（响应体是 nginx 的 HTML 错误页）**：撞上了 nginx `client_max_body_size` 的**内置默认值 1m**。它跟 token 上限无关，请求在反代就被拒了，CPA 和模型根本没收到。0.5M token 的上下文光文本就 ≥2MB，所以只要用大上下文就必然触发 —— 按上面的示例在 `location /v1/` 里加上 `client_max_body_size 128m;`。注意该指令**不会**从 `/v0/` 那样的兄弟 location 继承，必须写在 `/v1/` 自己（或写在上层 `server`/`http` 块里）。

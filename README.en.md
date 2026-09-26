@@ -59,6 +59,7 @@ Open dsh settings (gear) → **Balance Monitor** to edit the card's behaviour; s
 | Network | `network.cacheMs` | `40` s | Host quota cache; keep below the card refresh interval |
 | Network | `network.timeoutMs` | `20` s | Upstream timeout (Volcano Ark / Command Code / DeepSeek official usage / CPA management API) |
 | Network | `network.cpaBaseUrl` | empty | **Your own** CLIProxyAPI management address (quota source for the Google AI Pro channel); when empty that channel reads "CPA base URL not configured" — see [the setup guide](#setting-up-the-google-ai-pro-cliproxyapi-channel) |
+| Network | `network.cpaStaleMs` | `1200` s | A CPA snapshot older than this counts as stale and the plugin requests a probe automatically (keep it above the CPA-side schedule) |
 | Credentials | `credentials.file` | `.credentials.yaml` | Credentials document filename (relative to `$DSH_HOME`) |
 
 ### Channel credentials
@@ -141,6 +142,13 @@ trusted-proxies:
 ```
 
 Install the [`antigravity-priority`](https://github.com/ygq-future/antigravity-priority) quota plugin into `plugins/` (a Go c-shared `.so`; it reports `supports_quota: false` and exposes its own `plugins/antigravity-priority/snapshot/latest`, `run?mode=probe`, `samples` and `diagnostics` routes instead of the standard CPA quota API). **Dropping the plugin in without enabling it means an always-empty snapshot.**
+
+> **⚠️ It also has to actually probe, or the card freezes.** `antigravity-priority`'s background scheduling is gated by its own runtime switch **`auto_apply`**, which **defaults to off** — while it is off the plugin only probes when explicitly asked, so the snapshot stays frozen on whatever the last probe produced (symptom: the card shows no error and does show numbers, but they never move for hours). Pick either:
+>
+> - **Turn on the plugin's own scheduler**: in CPA's management panel open **⚙️ Configuration Center** and enable **automatic scheduling (`auto_apply`)** (default interval 15 min). It probes periodically **and writes credential priorities back** — that is the plugin's whole point, so enable it if you want its dual-window pacing and 429 cooldown.
+> - **Do nothing**: this plugin probes by itself once the snapshot is older than `network.cpaStaleMs` (20 min by default) — probe only, no priority write-back — so the card cannot sit on stale numbers forever. It renders those numbers semi-transparent to mark them as not fresh.
+>
+> To diagnose: `GET .../plugins/antigravity-priority/diagnostics` and check `management_api.auto_apply` plus `run_history` — a single, ancient `run_history` entry means nothing is probing.
 
 Keep the container on loopback and publish only 443:
 
@@ -225,6 +233,7 @@ curl -s -u user:pass -H 'X-CPA-Key: <management key>' \
 ### 5. Pitfalls
 
 - **Quota endpoint returns 501 / snapshot is empty**: no quota-provider plugin installed or enabled on CPA. When the snapshot is empty (e.g. right after a CPA restart) this plugin automatically POSTs `.../run?mode=probe` once and re-reads; still empty means the probe itself failed.
+- **Numbers show up but never move for hours**: nothing on the CPA side is probing — i.e. `auto_apply` is off, as described above. This plugin self-heals a stale snapshot (default: older than 20 min), but for continuously fresh data enable the plugin-side scheduler.
 - **Basic and Bearer fight over the same `Authorization` header**: send the management key as `X-CPA-Key` and let nginx rewrite it into the upstream Bearer, as above; passing both `Authorization` flavours just overwrites one with the other.
 - **Repeated auth failures ban the source IP**: CPA bans a source IP for ~30 minutes after too many failed management attempts. Behind a proxy every request looks like one IP, so triggering it takes down the whole chain — configure `trusted-proxies`, and `docker restart <container>` to clear a ban.
 - **`413 Request Entity Too Large` (the response body is nginx's HTML error page)**: you hit nginx's built-in `client_max_body_size` default of **1m**. It has nothing to do with the model's token limit — the request is rejected at the proxy and never reaches CPA or the model. A 0.5M-token context is already >=2MB of plain text, so any large context triggers it; add `client_max_body_size 128m;` to `location /v1/` as shown above. Note the directive is **not** inherited from a sibling location like `/v0/` — it must be set in `/v1/` itself (or in an enclosing `server`/`http` block).
