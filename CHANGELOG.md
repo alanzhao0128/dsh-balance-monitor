@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.9] — 2026-09-29
+
+### Fixed
+
+- **0.1.7 下侧边栏卡片完全不显示**。根因是会话列表快照的结构变更：
+  `sessions.list.getSnapshot()` 在 dsh ≤ 0.1.5 上带 `current`（当前会话 id），
+  而 **0.1.7 删除了该字段**，改为逐行持有保留计数
+  （`byId[id].retainedBy.mainView`，主视图正在显示的会话计数为正）。
+  卡片原先只读 `current`，在 0.1.7 上永远拿到 `undefined` → 判定「无会话」
+  → `return null`，于是**不报错、不渲染**，看起来就像插件没装上。
+  现改为 `activeSessionId()` 双形态解析：优先 `current`（0.1.5），
+  缺失时在 `byId` 中找 `retainedBy.mainView > 0` 的行（0.1.7），
+  并保留调用方已在跟随且仍被主视图持有的会话 id。
+  0.1.8/未来版本若再改结构，最坏情况是回退到「无会话」而不会抛错。
+
 ## [0.7.8] — 2026-09-29
 
 ### Changed
@@ -477,6 +492,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.9]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.8...0.7.9
 [0.7.8]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.7...0.7.8
 [0.7.7]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.6...0.7.7
 [0.7.6]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.5...0.7.6
