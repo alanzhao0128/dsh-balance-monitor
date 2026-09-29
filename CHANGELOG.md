@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.10] — 2026-09-29
+
+### Fixed
+
+- **0.1.7 下插件无法激活：`ValidationError: invalid config`**。0.7.8 引入的
+  volatile 标记同时打在了**容器对象**（`ui` / `network` / `credentials`）和
+  **叶子字段**上。schemastery 从 3.18.4 起禁止 volatile 嵌套 volatile
+  （`volatile fields require a fixed object path without an enclosing volatile
+  field`），宿主在解析配置阶段直接拒绝，启动时报
+  `balance-monitor (@alanzhao/dsh-balance-monitor): ValidationError: invalid
+  config: $.ui.showCard …`，整个条目**不激活**（卡片与设置页都不出现）。
+  0.7.9 的本地测试没能暴露它，因为仓库内解析到 schemastery 3.18.2（尚无该校验），
+  而 profile 里是 3.18.4。
+  现改为**只标记叶子字段**：设置表单仍能看到全部字段（`volatileForm` 会递归
+  普通对象并收集叶子），每个字段的写入路径仍是 volatile（写入不被拒）。
+  同时把本地 schemastery 提到 3.18.4，并新增回归断言（配置解析无 issues +
+  表单字段完整 + 写入路径合法），避免「本地绿、profile 挂」再次发生。
+
 ## [0.7.9] — 2026-09-29
 
 ### Fixed
@@ -492,6 +510,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.10]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.9...0.7.10
 [0.7.9]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.8...0.7.9
 [0.7.8]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.7...0.7.8
 [0.7.7]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.6...0.7.7
