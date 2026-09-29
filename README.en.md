@@ -42,7 +42,7 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom of the expanded sidebar, above Settings.
 
-> **Version requirement**: `0.7.2+` needs dsh `>= 0.1.5-rc.1` (dsh 0.1.5 removed the usable `connection.rpc.handle` path; the plugin's RPC moved to exact Fetch routes on the shared `/api` channel). On a dsh `0.1.2-rc.1` host, pin `0.7.1`. The Google AI Pro channel arrived in `0.7.3`.
+> **Version requirement**: `0.7.8+` is compatible with dsh `>= 0.1.5-rc.1` (including `0.1.7+` architectural refactoring with SettingsForms and dual-engine config). On a dsh `0.1.2-rc.1` host, pin `0.7.1`. The Google AI Pro channel arrived in `0.7.3`.
 
 ## Configuration
 

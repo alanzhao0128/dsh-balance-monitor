@@ -42,7 +42,7 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 然后重启 Web UI（`dsh --profile web`）。卡片出现在展开的侧边栏底部、设置按钮上方。
 
-> **版本要求**：`0.7.2+` 需要 dsh `≥ 0.1.5-rc.1`（0.1.5 起官方弃用 `connection.rpc.handle`，插件 RPC 迁移到共享 `/api` 通道的精确 Fetch 路由）；dsh `0.1.2-rc.1` 宿主请固定安装 `0.7.1`。
+> **版本要求**：`0.7.8+` 兼容 dsh `≥ 0.1.5-rc.1`（包含 `0.1.7+` 架构重构，支持 SettingsForms 与双轨设置）；dsh `0.1.2-rc.1` 宿主请固定安装 `0.7.1`。
 
 ## 配置
 

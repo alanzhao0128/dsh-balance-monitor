@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] — 2026-09-29
+
+### Changed
+
+- **DSH 0.1.7+ 双轨兼容适配**：全面适配 DSH 0.1.7 架构重构（Settings Provider 废弃与前端 `settingsScope` 移除），同时保持对 DSH 0.1.5 的完整向下兼容。
+  - **前端解死锁**：从静态 `inject` 依赖数组中移除了已在 0.1.7 废弃的 `'settingsScope'` 服务，彻底解决在 0.1.7 下 Cordis 插件生命周期被挂起导致侧边栏卡片无法渲染的问题。
+  - **双栈设置控制器 (`resolveScope`)**：运行时动态探测设置服务：在 DSH >= 0.1.7 下优先接入 `configForms`（按 `balance-monitor` 条目 ID 寻址），在 DSH <= 0.1.5 下平滑回退到 `settingsScope`（按 `dsh-balance-monitor` 命名空间寻址）。
+  - **后端 Config 导出与 Volatile 声明**：`lib/index.js` 导出 `Config` schema，并在字段上标记 `volatile`，支持 0.1.7 SettingsForms 的表单内省与在线保存写回 `cordis.patch.yml`；调用 `settings.configure({ auto: false })` 关闭自动生成的简陋表单，保留定制设置页。
+  - **双轨安装适配 (`installSettingsCompat`)**：后端在 `installSection` 可用时走 0.1.5 传统注册，在 SettingsForms 下监听 `app-boot/config-reload` 实现配置热更新。
+
 ## [0.7.7] — 2026-09-26
 
 ### Added
@@ -467,6 +477,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: DeepSeek account balance, remaining-ratio bar, and today's
   spend in the dsh sidebar footer.
 
+[0.7.8]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.7...0.7.8
 [0.7.7]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.6...0.7.7
 [0.7.6]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.5...0.7.6
 [0.7.5]: https://github.com/alanzhao0128/dsh-balance-monitor/compare/0.7.4...0.7.5
