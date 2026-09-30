@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.11] — 2026-09-30
+
+### Added
+
+- **支持官方 Desktop 桌面端账号登录（`deepseek-account` 渠道）**：
+  - 渠道表（`CHANNELS`）正式注册 `deepseek-account` 映射至 `balance` 卡片；
+  - 后端 `/balance` 处理器支持从系统凭证库自动嗅探 Desktop 账号登录记录（`deepseek-account-platform/default`），免配置 API Key 与平台 Token，自动通过官方 `get_user_summary`（充值钱包 + 赠金钱包）与 `usage/cost`（今日/7日/30日花费）接口拉取最新实时数据；
+  - 保持与原有的 `deepseek-official`（API Key）模式无缝双轨兼容。
+
 ## [0.7.10] — 2026-09-29
 
 ### Fixed
