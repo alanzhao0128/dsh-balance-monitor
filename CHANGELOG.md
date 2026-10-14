@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] — 2026-10-14
+
+### Fixed
+
+- **修复 Claude Pro 官方配额重置倒计时显示 `NaNh NaNm` 的问题**：
+  - 根因：服务端 `/v0/claude/quota` 响应中的 `resetAt` 为 ISO-8601 字符串格式，前端 `fmtReset` 计算时间差时产生 `NaN`；
+  - 修复：Host 端与 Client 端双重解析，确保 `resetAt` 统一规范化为毫秒时间戳（`number`），正常呈现剩余小时和分钟倒计时。
+
 ## [0.8.0] — 2026-10-14
 
 ### Added
