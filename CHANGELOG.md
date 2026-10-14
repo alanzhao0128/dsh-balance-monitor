@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — 2026-10-14
+
+### Added
+
+- **支持 Claude Pro 官方订阅用量监控（`claude-official` 渠道）**：
+  - 渠道表（`CHANNELS`）正式注册 `claude-official` 映射至 `claude-plan` 卡片；
+  - 服务端统一架构支持：Host 端自动复用 `network.cpaBaseUrl` 请求 CPA 部署的 `/v0/claude/quota` 端点，免在本地配置敏感 Token；
+  - 侧边栏卡片精准呈现官方 5 小时滑动窗口（`5h`）与 7 天周度窗口（`weekly`）使用率百分比与官方精确重置时间（`resetAt`）；
+  - 折叠态与展开态完整支持，支持预警阈值色变及过期间隔自动标记。
+
 ## [0.7.11] — 2026-09-30
 
 ### Added
