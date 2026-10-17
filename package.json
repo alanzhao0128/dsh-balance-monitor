@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Channel-aware balance/usage card for DeepSeek Harness: DeepSeek official balance + spend windows, Volcano Ark Agent Plan quota bars.",
   "keywords": [
     "dsh",
@@ -46,5 +46,9 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.1.2-rc.1"
   }
 }

@@ -22,6 +22,7 @@ DeepSeek 余额与花费窗口，直接显示在 dsh 侧边栏底部。
 | 火山方舟 Agent Plan | 配置 AK/SK 后，调用 `GetAFPUsage` 控制面 API（SigV4 签名），显示 5小时/周/月 三档套餐额度进度条，颜色随用量变化（绿→黄→红） |
 | Command Code 用量 | 配置 `COMMANDCODE_API_KEY` 后，调用 `api.commandcode.ai/alpha/billing/credits` 等接口，显示 5h/周/月 三窗口已用百分比与重置倒计时 |
 | Google AI Pro 额度 | 配置 CPA 管理地址 + Basic 认证 + 管理密钥后，读取 CPA 上 `antigravity-priority` 插件探测的配额快照，按 Gemini / Claude+GPT 两个模型组显示 5h 与每周剩余百分比、重置倒计时（CPA 刚重启导致快照为空时自动触发一次探测）。**服务端需自行搭建，见[搭建指南](#google-ai-procliproxy渠道搭建)** |
+| Claude Pro 官方额度 | 配置 CPA 管理地址后，读取 CPA 上定时任务探测的官方 OAuth 用量快照（`/v0/claude/quota`），按 5h 会话与 7 日周度窗口显示已用百分比、官方重置时间倒计时 |
 | 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack |
 | 折叠态 | 收起后变为 36px 圆形，显示紧凑余额 + tooltip |
 | 健壮性 | 60s 轮询 + 切回标签页时刷新；上游失败时保留上次数据（变淡标记 stale），不闪错误 |
@@ -42,7 +43,7 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 然后重启 Web UI（`dsh --profile web`）。卡片出现在展开的侧边栏底部、设置按钮上方。
 
-> **版本要求**：`0.7.8+` 兼容 dsh `≥ 0.1.5-rc.1`（包含 `0.1.7+` 架构重构，支持 SettingsForms 与双轨设置）；dsh `0.1.2-rc.1` 宿主请固定安装 `0.7.1`。
+> **版本要求**：`0.8.2+` 兼容 dsh `≥ 0.1.2-rc.1`（完美兼容 DSH Desktop `0.2.1-rc.2` 及更高版本，声明 `engines.dsh` 一等公民标准，全面支持 SettingsForms 与双轨设置）；dsh `0.1.2-rc.1` 宿主请固定安装 `0.7.1`。
 
 ## 配置
 

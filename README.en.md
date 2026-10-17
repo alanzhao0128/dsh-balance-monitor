@@ -22,6 +22,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Volcano Ark Agent Plan | With AK/SK configured, calls the `GetAFPUsage` control-plane API (SigV4 signed) and shows 5h / weekly / monthly quota bars, colored by usage (green → amber → red) |
 | Command Code usage | With `COMMANDCODE_API_KEY` configured, calls `api.commandcode.ai/alpha/billing/credits` etc. and shows 5h / weekly / monthly used % with reset countdowns |
 | Google AI Pro quota | With the CPA management URL, Basic auth, and management key configured, reads the quota snapshot probed by the `antigravity-priority` plugin on your CPA and shows 5h / weekly remaining percentages plus reset countdowns for the Gemini and Claude+GPT model groups (an empty snapshot right after a CPA restart triggers one probe automatically). **The server side is yours to build — see [the setup guide](#setting-up-the-google-ai-pro-cliproxyapi-channel)** |
+| Claude Pro official quota | With CPA management URL configured, reads the official OAuth usage snapshot (`/v0/claude/quota`) probed by CPA timer scripts, showing 5h session and 7-day weekly utilized % and official reset countdowns |
 | Placement | Registered on the official `sidebar.footer.action` slot — above Settings, no patch hacks |
 | Collapsed rail | Shrinks to a 36px circle with a compact balance and a tooltip |
 | Resilience | 60s polling + re-poll on tab visibility; on upstream failure the last known numbers stay visible (dimmed as stale) instead of an error flash |
@@ -42,7 +43,7 @@ dsh plugin --profile web add @alanzhao/dsh-balance-monitor
 
 Then restart the Web UI (`dsh --profile web`). The widget appears at the bottom of the expanded sidebar, above Settings.
 
-> **Version requirement**: `0.7.8+` is compatible with dsh `>= 0.1.5-rc.1` (including `0.1.7+` architectural refactoring with SettingsForms and dual-engine config). On a dsh `0.1.2-rc.1` host, pin `0.7.1`. The Google AI Pro channel arrived in `0.7.3`.
+> **Version requirement**: `0.8.2+` is compatible with dsh `>= 0.1.2-rc.1` (fully supports DSH Desktop `0.2.1-rc.2` and higher with first-class `engines.dsh` declaration and SettingsForms dual-engine adaptation). On a dsh `0.1.2-rc.1` host, pin `0.7.1`.
 
 ## Configuration
 

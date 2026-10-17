@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] — 2026-10-17
+
+### Added
+
+- **DSH 0.2.1-rc.2 规范与兼容性一等公民声明**：
+  - 在 `package.json` 的 `engines` 中正式添加 `"dsh": ">=0.1.2-rc.1"`，对齐 DSH 0.2.1 优先读取 `engines.dsh` 的最新插件判定机制。
+- **Claude Pro 渠道设置页说明**：
+  - 在设置页的渠道凭证列表中新增 Claude Pro 专属说明卡片（中英双语），阐明其自动复用 `network.cpaBaseUrl` 与 Nginx 配额缓存端点的工作机制。
+
+### Improved
+
+- **Claude Pro 配额查询健壮性与优雅降级**：
+  - Host 端增加基于 `network.cacheMs` 的进程内内存缓存，杜绝客户端多标签高频轮询触发 VPS Nginx 限流；
+  - 增加网络抖动优雅降级机制（Graceful Fallback），在上游临时瞬断或超时时自动复用最后一次成功快照并标记 `stale: true`，消除界面闪烁；
+  - 自动穿透检测并支持 `CPA_BASIC_AUTH` 请求头。
+
 ## [0.8.1] — 2026-10-14
 
 ### Fixed
