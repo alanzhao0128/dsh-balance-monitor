@@ -1,0 +1,10 @@
+[Unit]
+Description=Wake the Gemini quota probe every 30s (local-only check; Google is called at most once per cooldown)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

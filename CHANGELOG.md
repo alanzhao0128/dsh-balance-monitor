@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] — 2026-11-09
+
+### Changed (BREAKING)
+
+- **Google AI Pro 渠道改读静态额度快照 `GET {network.cpaBaseUrl}/v0/google/quota`**：
+  - 旧版读取 CPA 管理接口 `/v0/management/plugins/antigravity-priority/snapshot/latest`（需要 Basic 认证 + CPA 管理密钥），并会在快照过期/为空时自动 `POST .../run?mode=probe` 触发探测。**0.9.0 起不再访问 `/v0/management/*`，也不再触发任何探测**——插件只读一份静态 JSON，仅需 Basic 认证（与 Claude Pro 卡片同构）。
+  - 快照格式：`groups[].windows[]`（`level` 为 `5h` / `weekly`，`remaining` 为剩余百分比，`resetAt` 为 ISO-8601），详见 README「Google AI Pro 渠道搭建」。
+  - **从 0.8.x 升级**：服务端需按 README 提供 `/v0/google/quota`（仓库附参考实现 `examples/google-quota/`）；未提供时卡片显示「CPA 上没有 /v0/google/quota 端点」。
+- 卡片现在只显示 **Gemini 的 5h 与每周窗口**（不再包含 Claude/GPT 组，该组额度另有 Claude Pro 卡片）。
+
+### Removed
+
+- 设置页的 **管理密钥（`CPA_MANAGEMENT_KEY`）** 输入框，以及 `credential-status` 对它的检查。已存的值无害，可自行从 `.credentials.yaml` 删除。
+
+### Added
+
+- **`examples/google-quota/` 参考实现**（仅仓库内，不随 npm 包发布）：`gemini_quota_probe.py`（仅标准库的探针）、`gemini-quota-probe.{service,timer}`、`nginx-google-quota.conf`、离线测试 `test_gemini_quota_probe.py`。探针按「调用事件驱动 + 冷静期」工作：每 30 秒只读本机 CPA 的成功请求计数；**成功与失败后冷静期都是 1 小时**，期内会话不算数，必须等期满后出现新会话才向 Google 探测 1 次；没有会话则零上游请求；取不到 Gemini 组一律判失败、保留旧快照、绝不伪造数值。
+- Google 通道的**优雅降级**：网络抖动 / 超时时复用最后一次成功快照并标记 `stale`（与 Claude 卡片一致）；`/v0/google/quota` 返回 404 时给出明确的 `notfound` 提示而不是笼统的失败。
+
+### Improved
+
+- `network.cpaStaleMs` 的说明与代码注释更新：它现在只决定卡片何时淡显，插件**不再**在快照过期时自动补探测。Google 快照有「有会话才探测 + 冷静期」，闲置时会比默认 20 分钟更旧、因而淡显，属预期；介意可调大（与 Claude 卡共用）。
+
+### Notes
+
+- 实测踩坑（写进了 README）：探针请求的 `User-Agent` 必须是较新的 Antigravity 客户端版本，旧 UA 下 Google 只返回 Claude/GPT 组、不返回 Gemini 组；任何探针都不应在缺组时兜底成 100%，否则卡片会一直显示「已用 0%」。
+
 ## [0.8.2] — 2026-10-17
 
 ### Added

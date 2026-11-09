@@ -1,0 +1,16 @@
+[Unit]
+Description=Google AI Pro (Gemini) quota probe - event-driven, 1h cooldown
+After=network.target
+
+[Service]
+Type=oneshot
+# All GQP_* variables are optional; defaults assume CPA lives in /root/cliproxyapi (see the script header).
+#Environment=GQP_CPA_URL=http://127.0.0.1:18317
+#Environment=GQP_AUTH_DIR=/root/cliproxyapi/auth
+#Environment=GQP_CACHE_FILE=/var/www/cpa-static/google-quota-cache.json
+#Environment=GQP_STATE_FILE=/var/lib/gemini-quota-probe/state.json
+# Management key: either put CPA_MGMT_KEY=... in this file (chmod 600), or keep a `MGMT_KEY=...` line
+# in the file named by GQP_SECRETS_FILE.
+#EnvironmentFile=/etc/gemini-quota-probe.env
+ExecStart=/usr/bin/python3 /opt/gemini-quota-probe/gemini_quota_probe.py
+User=root
